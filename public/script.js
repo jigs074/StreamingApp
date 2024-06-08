@@ -67,4 +67,3 @@ function connectToNewUser(userId, stream) {
     console.error('Call error:', error)
   })
 }
- 
