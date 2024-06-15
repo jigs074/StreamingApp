@@ -1,18 +1,88 @@
 const express = require('express') 
-
 const app = express()
-
 const server = require('http').Server(app)
-
 const io = require('socket.io')(server)
-
 const { v4: uuidv4 } = require('uuid')
 const ejs = require('ejs')
-
 const bcrypt = require('bcryptjs'); 
 const session = require('express-session'); 
 const bodyParser = require('body-parser'); 
-const db = require('./db'); 
+const db = require('./db');
+
+
+require('dotenv').config({path: './EmailCreds.env'});
+const nodemailer = require('nodemailer'); 
+const crypto = require('crypto'); 
+
+
+const transporter = nodemailer.createTransport({
+    service: 'gmail', 
+    auth: {
+        user: process.env.EMAIL_USER, 
+        pass: process.env.EMAIL_PASS
+    }
+}); 
+
+app.post('/forgot-password', (req, res) => {
+    const { username } = req.body;
+
+    db.query('SELECT email FROM users WHERE username = ?', [username], (err, results) => {
+        if (err || results.length === 0) {
+            console.error('Error fetching email:', err);
+            res.send('Error: User not found');
+        } else {
+            const email = results[0].email;
+
+            // Generate a 6-digit OTP
+            const otp = crypto.randomInt(100000, 999999).toString();
+
+            // Save OTP in database
+            db.query('UPDATE users SET otp = ? WHERE username = ?', [otp, username], (err, result) => {
+                if (err) {
+                    console.error('Error updating OTP:', err);
+                    res.send('Error sending OTP');
+                } else {
+                    // Send OTP email
+                    const mailOptions = {
+                        from: 'your-email@gmail.com',
+                        to: email,
+                        subject: 'Your OTP for password reset',
+                        text: `Your OTP is ${otp}`
+                    };
+
+                    transporter.sendMail(mailOptions, (err, info) => {
+                        if (err) {
+                            console.error('Error sending email:', err);
+                            res.send('Error sending OTP');
+                        } else {
+                            res.send('OTP sent to your email');
+                        }
+                    });
+                }
+            });
+        }
+    });
+});
+
+
+app.post('/verify-otp', (req, res) => {
+    const { username, otp } = req.body;
+
+    db.query('SELECT otp FROM users WHERE username = ?', [username], (err, results) => {
+        if (err) {
+            console.error('Error retrieving OTP:', err);
+            res.send('Error verifying OTP');
+        } else if (results.length > 0 && results[0].otp === otp) {
+            // OTP is correct, proceed to reset password
+            res.send('OTP verified. Proceed to reset password.');
+        } else {
+            res.send('Invalid OTP');
+        }
+    });
+});
+
+
+
 
 console.log('Setting view engine to ejs...')
 app.set('view engine', 'ejs')
@@ -28,6 +98,14 @@ app.use(session({
   saveUninitialized: true
 })); 
 
+
+app.get ('/forgot-password', (req , res) =>{
+     res.render('forgot-password'); 
+}); 
+
+app.get('/verify-otp', (req, res)=> {
+   res.render('verify-otp'); 
+}); 
 app.get('/login', (req, res) => {
  res.render('login'); 
 }); 
@@ -39,11 +117,11 @@ app.get('/register', (req, res) => {
 }); 
 
 app.post('/register' , async(req, res)=> {
-    const {username , password } = req.body; 
+    const {username , password, email } = req.body; 
 
     const hashedPassword  = await bcrypt.hash(password, 10); 
 
-    db.query('INSERT INTO users (username, password) VALUES (?,?)', [username, hashedPassword], (error, results) => {
+    db.query('INSERT INTO users (username, password, email) VALUES (?,?,?)', [username, hashedPassword,email], (error, results) => {
         if(error) {
            console.error ('Registration error: ', error); 
            res.send('Registration failed: ' + error.message);
