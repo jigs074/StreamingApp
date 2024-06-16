@@ -9,10 +9,25 @@ const session = require('express-session');
 const bodyParser = require('body-parser'); 
 const db = require('./db');
 
+console.log('Setting view engine to ejs...')
+app.set('view engine', 'ejs')
 
+console.log('View engine set successfully.')
+
+app.use(bodyParser.urlencoded({extended: true})); 
+app.use(express.static('public')); 
+app.use(bodyParser.json()); 
+app.use(session({
+  secret: 'secret', 
+  resava: true, 
+  saveUninitialized: true
+})); 
 require('dotenv').config({path: './EmailCreds.env'});
 const nodemailer = require('nodemailer'); 
 const crypto = require('crypto'); 
+
+console.log('EMAIL_USER:', process.env.EMAIL_USER);
+console.log('EMAIL_PASS:', process.env.EMAIL_PASS);
 
 
 const transporter = nodemailer.createTransport({
@@ -24,7 +39,10 @@ const transporter = nodemailer.createTransport({
 }); 
 
 app.post('/forgot-password', (req, res) => {
-    const { username } = req.body;
+    console.log('Request body: ', req.body);
+     // Debugging log 
+     const { username } = req.body;
+     console.log('Username: ', username); 
 
     db.query('SELECT email FROM users WHERE username = ?', [username], (err, results) => {
         if (err || results.length === 0) {
@@ -84,19 +102,7 @@ app.post('/verify-otp', (req, res) => {
 
 
 
-console.log('Setting view engine to ejs...')
-app.set('view engine', 'ejs')
 
-console.log('View engine set successfully.')
-
-app.use(bodyParser.urlencoded({extended: true})); 
-app.use(express.static('public')); 
-
-app.use(session({
-  secret: 'secret', 
-  resava: true, 
-  saveUninitialized: true
-})); 
 
 
 app.get ('/forgot-password', (req , res) =>{
@@ -118,8 +124,10 @@ app.get('/register', (req, res) => {
 
 app.post('/register' , async(req, res)=> {
     const {username , password, email } = req.body; 
+    console.log('Register request body: ', req.body); 
 
     const hashedPassword  = await bcrypt.hash(password, 10); 
+    console.log('Hashed Password: ', hashedPassword); 
 
     db.query('INSERT INTO users (username, password, email) VALUES (?,?,?)', [username, hashedPassword,email], (error, results) => {
         if(error) {
@@ -133,6 +141,8 @@ app.post('/register' , async(req, res)=> {
 
 app.post('/login', async(req, res) => {
 const {username, password } = req.body; 
+console.log('Login request body: ', req.body); 
+
 if (username && password){
     db.query('SELECT * FROM users WHERE username = ?', [username], async(error, results)=> {
         if (error){
@@ -140,6 +150,7 @@ if (username && password){
 
         }
         else {
+            console.log('User data retrieved: ', results); 
             const user = results[0]; 
             if(user && await bcrypt.compare(password, user.password)){
                 req.session.loggedin = true; 
