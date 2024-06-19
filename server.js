@@ -73,7 +73,8 @@ app.post('/forgot-password', (req, res) => {
                             console.error('Error sending email:', err);
                             res.send('Error sending OTP');
                         } else {
-                            res.send('OTP sent to your email');
+                            
+                            res.redirect('/verify-otp'); 
                         }
                     });
                 }
@@ -92,7 +93,7 @@ app.post('/verify-otp', (req, res) => {
             res.send('Error verifying OTP');
         } else if (results.length > 0 && results[0].otp === otp) {
             // OTP is correct, proceed to reset password
-            res.send('OTP verified. Proceed to reset password.');
+            res.render('reset-password', {username});
         } else {
             res.send('Invalid OTP');
         }
@@ -138,6 +139,21 @@ app.post('/register' , async(req, res)=> {
         }
     });
 }); 
+
+app.post('/reset-password', async (req, res) => {
+    const { username, password } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    db.query('UPDATE users SET password = ? WHERE username = ?', [hashedPassword, username], (err) => {
+        if (err) {
+            console.error('Error updating password:', err);
+            res.send('Error resetting password');
+        } else {
+            res.send('Password has been reset successfully');
+        }
+    });
+});
+
+
 
 app.post('/login', async(req, res) => {
 const {username, password } = req.body; 
