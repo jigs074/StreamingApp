@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <h2>Welcome, <%= username %>!</h2>
+        <form action="/enter-room" method="POST">
+            <label for="roomId">Enter Room ID to Join:</label>
+            <input type="text" id="roomId" name="roomId" required>
+            <button type="submit">Join Room</button>
+        </form>
+        <form action="/create-room" method="POST">
+            <label for = "customRoomId"> Enter Custom Room Id to Create: </label>
+            <input type = "text" id = "customRoomId" name = "customRoomId" required> 
+            <button type = "submit"> Create Room </button>
+        </form>
+    </div>
+</body>
+</html>

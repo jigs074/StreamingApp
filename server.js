@@ -153,7 +153,16 @@ app.post('/reset-password', async (req, res) => {
     });
 });
 
+app.post('/enter-room', (req,res) => {
+  const { roomId } = req.body; 
+  if(req.session.loggedin) {
+    res.redirect(`/${roomId}`);
 
+  } 
+  else {
+    res.redirect('/login'); 
+  }
+}); 
 
 app.post('/login', async(req, res) => {
 const {username, password } = req.body; 
@@ -181,11 +190,25 @@ if (username && password){
     }); 
 }
 
-}); 
+});
+
+app.post('/create-room', (req,res) => {
+   const { customRoomId } = req.body; 
+   
+ if (req.session.loggedin){
+   
+io.of('/').adapter.rooms.has(customRoomId) ? res.send('Room ID already in use.') : res.redirect(`/${customRoomId}`);
+    
+ }
+ else {
+  res.redirect('/login'); 
+ }
+
+});
 app.get('/', (req, res) => {
 
     if (req.session.loggedin){
-    res.redirect(`/${uuidv4()}`);
+    res.render('dashboard', {username: req.session.username });
     }
     else {
         res.redirect('/login'); 
