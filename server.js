@@ -97,7 +97,7 @@ app.post('/verify-otp', (req, res) => {
         } else {
             res.send('Invalid OTP');
         }
-    });
+    })
 });
 
 
@@ -155,12 +155,19 @@ app.post('/reset-password', async (req, res) => {
 
 app.post('/enter-room', (req,res) => {
   const { roomId } = req.body; 
+  
   if(req.session.loggedin) {
-    res.redirect(`/${roomId}`);
+    if (io.sockets.adapter.rooms.has(roomId)){
+        res.status(200).json({redirectUrl:`/${roomId}`});
 
-  } 
+    }
+    else {
+         res.status(400).json({message: 'Room Id does not exist'}); 
+       
+    }
+   } 
   else {
-    res.redirect('/login'); 
+    res.status(401).json({redirectUrl: `/${login}` }); 
   }
 }); 
 
@@ -192,22 +199,24 @@ if (username && password){
 
 });
 
-app.post('/create-room', (req,res) => {
-   const { customRoomId } = req.body; 
-   
- if (req.session.loggedin){
-   
-io.of('/').adapter.rooms.has(customRoomId) ? res.send('Room ID already in use.') : res.redirect(`/${customRoomId}`);
-    
- }
- else {
-  res.redirect('/login'); 
- }
+app.post('/create-room', (req, res) => {
+    const { customRoomId } = req.body;
+    if (req.session.loggedin) {
+      if (io.sockets.adapter.rooms.has(customRoomId)) {
+        res.status(400).json({message: 'Room Id already in use. '}); 
+      } else {
+        io.sockets.emit('create-room', customRoomId); 
 
-});
+        res.status(200).json({ redirectUrl: `/${customRoomId}` });
+      }
+    } else {
+        res.status(401).json({ message: 'Not logged in' });
+    }
+  });
+
 app.get('/', (req, res) => {
 
-    if (req.session.loggedin){
+    if (req.session.loggedin){ 
     res.render('dashboard', {username: req.session.username });
     }
     else {

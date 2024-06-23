@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -22,3 +22,74 @@
     </div>
 </body>
 </html>
+
+ -->
+
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Dashboard</title>
+     <link rel="stylesheet" href="/styles.css">
+ </head>
+ <body>
+     <div class="container">
+         <h2>Welcome, <%= username %>!</h2>
+         <form id="enter-room-form">
+             <label for="roomId">Enter Room ID to Join:</label>
+             <input type="text" id="roomId" name="roomId" required>
+             <button type="submit">Join Room</button>
+         </form>
+         <form id="create-room-form">
+             <label for="customRoomId">Enter Custom Room Id to Create:</label>
+             <input type="text" id="customRoomId" name="customRoomId" required>
+             <button type="submit">Create Room</button>
+         </form>
+     </div>
+     <script>
+         document.getElementById('create-room-form').addEventListener('submit', async (event) => {
+             event.preventDefault();
+             const formData = new FormData(event.target);
+             const customRoomId = formData.get('customRoomId');
+             try {
+                 const response = await fetch('/create-room', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ customRoomId })
+                 });
+                 const data = await response.json();
+                 if (response.ok) {
+                     window.location.href = data.redirectUrl;
+                 } else {
+                     alert(data.message);
+                 }
+             } catch (error) {
+                 alert('An error occurred. Please try again.');
+             }
+         });
+ 
+         document.getElementById('enter-room-form').addEventListener('submit', async (event) => {
+             event.preventDefault();
+             const formData = new FormData(event.target);
+             const roomId = formData.get('roomId');
+             try {
+                 const response = await fetch('/enter-room', {
+                     method: 'POST',
+                     headers: { 'Content-Type': 'application/json' },
+                     body: JSON.stringify({ roomId })
+                 });
+                 const data = await response.json();
+                 if (response.ok) {
+                     window.location.href = data.redirectUrl;
+                 } else {
+                     alert(data.message);
+                 }
+             } catch (error) {
+                 alert('An error occurred. Please try again.');
+             }
+         });
+     </script>
+ </body>
+ </html>
+ 
