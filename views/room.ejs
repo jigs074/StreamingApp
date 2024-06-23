@@ -175,8 +175,8 @@
                 <div class="col-1">
                     <div id="video-grid"></div>
                     <div class="controls">
-                        <img src="https://i.postimg.cc/3NVtVtgf/chat.png">
-                        <img src="https://i.postimg.cc/BQPYHG0r/disconnect.png">
+                        <img src="https://i.postimg.cc/3NVtVtgf/chat.png" id = "chat-icon">
+                        <img src="https://i.postimg.cc/BQPYHG0r/disconnect.png" id = "disconnect-icon">
                         <img src="https://i.postimg.cc/fyJH8G00/call.png" class="call-icon">
                         <img src="https://i.postimg.cc/bJFgSmFY/mic.png">
                         <img src="https://i.postimg.cc/Y2sDvCJN/cast.png">
@@ -207,6 +207,81 @@
             </div>
         </div>
     </div>
+
+<div class = "chat-container" style = "display : none; ">
+    <div class = "chat-header"> 
+        <h3> Chat Room </h3>
+        <button id = "close-chat-btn">Close</button>
+    </div>
+
+    <div id = "chat-messages"> </div>
+    <form id = "chat-form">
+        <input type = "text" id = "chat-input" placeholder = "Type your message ... " autocomplete="off"> 
+        <button type = "submit"> Send </button>
+    </form>
+</div>
+<script> 
+
+    document.addEventListener('DOMContentLoaded', () => {
+    const chatIcon = document.getElementById('chat-icon'); 
+    const chatContainer = document.querySelector('.chat-container'); 
+    const closeChatBtn = document.getElementById('close-chat-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+
+    chatIcon.addEventListener('click', () => {
+                chatContainer.style.display = 'block';
+                chatIcon.style.display = 'none';
+            });
+
+    closeChatBtn.addEventListener('click', () => {
+                chatContainer.style.display = 'none';
+                chatIcon.style.display = 'block';
+            });
+    
+    chatForm.addEventListener('submit', (event) => {
+
+        event.preventDefault(); 
+        const message = chatInput.value.trim(); 
+        if (message){
+            socket.emit ('chat message ', message); 
+            chatInput.value = ''; 
+
+        }
+
+    }); 
+   // Receive and display chat messages 
+
+   socket.on('chat message', (msg) => {
+    const messageElement = document.createElement('div'); 
+    messageElement.textContent = msg; 
+    chatMessages.appendChild(messageElement); 
+    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom 
+
+   }); 
+
+   const disconnectIcon = document.getElementById('disconnect-icon'); 
+    disconnectIcon.addEventListener('click', () => {
+        // Stop All media tracks 
+        const videoGrid = document.getElementById('video-grid'); 
+        videoGrid.querySelectorAll('video').forEach(video => {
+            video.srcObject.getTracks().forEach(track => track.stop());
+    }); 
+
+    // Close PeerJs Connection 
+
+    if (window.peer){
+        window.peer.destroy(); 
+
+    }
+
+    // Redirect to the dashboard
+
+    window.location.href = '/'; 
+    });
+    }); 
+</script>
 </body>
 </html>
 

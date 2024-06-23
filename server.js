@@ -8,6 +8,8 @@ const bcrypt = require('bcryptjs');
 const session = require('express-session'); 
 const bodyParser = require('body-parser'); 
 const db = require('./db');
+const http = require('http'); 
+
 
 console.log('Setting view engine to ejs...')
 app.set('view engine', 'ejs')
@@ -243,6 +245,13 @@ io.on('connection', socket => {
         socket.to(roomId).emit('user-connected',userId)
         socket.on('disconnect' , () => {
             socket.to(roomId).emit('user-disconnected', userId)
+        })
+
+        socket.on('chat-message', (msg) => {
+            // Broadcast the message to everyone in the room 
+
+            io.to(roomId).emit('chat message', msg); 
+            
         })
     })
 })
