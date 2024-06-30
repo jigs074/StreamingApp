@@ -239,6 +239,9 @@ app.get('/:room', (req, res) => {
     }
 });
 
+
+
+
 io.on('connection', socket => {
     socket.on('join-room', (roomId, userId) => {
         socket.join(roomId)
@@ -248,8 +251,9 @@ io.on('connection', socket => {
         })
 
         socket.on('chat-message', (msg) => {
+            console.log(`Message received from user ${userId} in room ${roomId}: ${msg}`);
             // Broadcast the message to everyone in the room 
-
+            
             io.to(roomId).emit('chat message', msg); 
             
         })
