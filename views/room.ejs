@@ -4,13 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Calling Website UI Design</title>
-    <script> 
+    <script>
         const ROOM_ID = "<%= roomId %>";
+        const USER_ID = "<%= username %>";
     </script>
     <script defer src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="/socket.io/socket.io.js" defer></script>
     <script src="script.js" defer></script>
     <style>
+        /* Add your styles here */
         * {
             margin: 0;
             padding: 0;
@@ -141,15 +143,52 @@
             cursor: pointer;
         }
         #video-grid {
-            display: grid; 
-            grid-template-columns: repeat(auto-fill, 300px); 
+            display: grid;
+            grid-template-columns: repeat(auto-fill, 300px);
             grid-auto-rows: 300px;
             margin-top: 20px;
         }
         video {
-            width: 100%; 
-            height: 100%; 
+            width: 100%;
+            height: 100%;
             object-fit: cover;
+        }
+        .chat-container {
+            display: none; /* Hide chat container by default */
+            position: fixed;
+            bottom: 0;
+            right: 0;
+            width: 300px;
+            height: 400px;
+            border: 1px solid #ccc;
+            background-color: white;
+            z-index: 1000;
+        }
+        .chat-header {
+            background-color: blueviolet;
+            color: white;
+            padding: 10px;
+            text-align: center;
+        }
+        .chat-messages {
+            height: 300px;
+            overflow-y: scroll;
+            padding: 10px;
+        }
+        .chat-input {
+            display: flex;
+            padding: 10px;
+        }
+        .chat-input input {
+            flex: 1;
+            padding: 10px;
+            margin-right: 10px;
+        }
+        .chat-input button {
+            padding: 10px;
+            background-color: blueviolet;
+            color: white;
+            border: none;
         }
     </style>
 </head>
@@ -160,7 +199,7 @@
             <ul>
                 <li><img src="https://i.postimg.cc/L8zxQBhv/live.png" class="active"></li>
                 <li><img src="https://i.postimg.cc/JnggC78Q/video.png"></li>
-                <li><img src="https://i.postimg.cc/vmb3JgVy/message.png"></li>
+                <li><img src="https://i.postimg.cc/vmb3JgVy/message.png" id="chat-icon"></li>
                 <li><img src="https://i.postimg.cc/qR7Q7PwZ/notification.png"></li>
                 <li><img src="https://i.postimg.cc/k4DZH604/users.png"></li>
                 <li><img src="https://i.postimg.cc/v84Fqkyz/setting.png"></li>
@@ -175,8 +214,8 @@
                 <div class="col-1">
                     <div id="video-grid"></div>
                     <div class="controls">
-                        <img src="https://i.postimg.cc/3NVtVtgf/chat.png" id = "chat-icon">
-                        <img src="https://i.postimg.cc/BQPYHG0r/disconnect.png" id = "disconnect-icon">
+                        <img src="https://i.postimg.cc/3NVtVtgf/chat.png" id="chat-icon">
+                        <img src="https://i.postimg.cc/BQPYHG0r/disconnect.png" id="disconnect-icon">
                         <img src="https://i.postimg.cc/fyJH8G00/call.png" class="call-icon">
                         <img src="https://i.postimg.cc/bJFgSmFY/mic.png">
                         <img src="https://i.postimg.cc/Y2sDvCJN/cast.png">
@@ -208,81 +247,74 @@
         </div>
     </div>
 
-<div class = "chat-container" style = "display : none; ">
-    <div class = "chat-header"> 
-        <h3> Chat Room </h3>
-        <button id = "close-chat-btn">Close</button>
+    <div class="chat-container" id="chat-container">
+        <div class="chat-header">
+            <h3>Chat Room</h3>
+            <button id="close-chat-btn">Close</button>
+        </div>
+        <div id="chat-messages"></div>
+        <form id="chat-form">
+            <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off">
+            <button type="submit">Send</button>
+        </form>
     </div>
 
-    <div id = "chat-messages"> </div>
-    <form id = "chat-form">
-        <input type = "text" id = "chat-input" placeholder = "Type your message ... " autocomplete="off"> 
-        <button type = "submit"> Send </button>
-    </form>
-</div>
-<script> 
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+            const chatIcon = document.getElementById('chat-icon');
+            const chatContainer = document.getElementById('chat-container');
+            const closeChatBtn = document.getElementById('close-chat-btn');
+            const chatMessages = document.getElementById('chat-messages');
+            const chatForm = document.getElementById('chat-form');
+            const chatInput = document.getElementById('chat-input');
 
-    document.addEventListener('DOMContentLoaded', () => {
-    const chatIcon = document.getElementById('chat-icon'); 
-    const chatContainer = document.querySelector('.chat-container'); 
-    const closeChatBtn = document.getElementById('close-chat-btn');
-    const chatMessages = document.getElementById('chat-messages');
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
+            socket.emit('join-room', ROOM_ID, USER_ID);
 
-    chatIcon.addEventListener('click', () => {
+            chatIcon.addEventListener('click', () => {
                 chatContainer.style.display = 'block';
                 chatIcon.style.display = 'none';
             });
 
-    closeChatBtn.addEventListener('click', () => {
+            closeChatBtn.addEventListener('click', () => {
                 chatContainer.style.display = 'none';
                 chatIcon.style.display = 'block';
             });
-    
-    chatForm.addEventListener('submit', (event) => {
 
-        event.preventDefault(); 
-        const message = chatInput.value.trim(); 
-        if (message){
-            socket.emit ('chat message', message); 
-            chatInput.value = ''; 
+            chatForm.addEventListener('submit', (event) => {
+                event.preventDefault();
+                const message = chatInput.value.trim();
+                if (message) {
+                    socket.emit('chat-message', { user: USER_ID, message });
+                    chatInput.value = '';
+                }
+            });
 
-        }
+            // Receive and display chat messages
+            socket.on('chat-message', (msg) => {
+                const messageElement = document.createElement('div');
+                messageElement.textContent = `${msg.user}: ${msg.message}`;
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
+            });
 
-    }); 
-   // Receive and display chat messages 
+            const disconnectIcon = document.getElementById('disconnect-icon');
+            disconnectIcon.addEventListener('click', () => {
+                // Stop all media tracks
+                const videoGrid = document.getElementById('video-grid');
+                videoGrid.querySelectorAll('video').forEach(video => {
+                    video.srcObject.getTracks().forEach(track => track.stop());
+                });
 
-   socket.on('chat message', (msg) => {
-    const messageElement = document.createElement('div'); 
-    messageElement.textContent = msg; 
-    chatMessages.appendChild(messageElement); 
-    chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom 
+                // Close PeerJS connection
+                if (window.peer) {
+                    window.peer.destroy();
+                }
 
-   }); 
-
-   const disconnectIcon = document.getElementById('disconnect-icon'); 
-    disconnectIcon.addEventListener('click', () => {
-        // Stop All media tracks 
-        const videoGrid = document.getElementById('video-grid'); 
-        videoGrid.querySelectorAll('video').forEach(video => {
-            video.srcObject.getTracks().forEach(track => track.stop());
-    }); 
-
-    // Close PeerJs Connection 
-
-    if (window.peer){
-        window.peer.destroy(); 
-
-    }
-
-    // Redirect to the dashboard
-
-    window.location.href = '/'; 
-    });
-    }); 
-</script>
+                // Redirect to the dashboard
+                window.location.href = '/';
+            });
+        });
+    </script>
 </body>
 </html>
-
-
