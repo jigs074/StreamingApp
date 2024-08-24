@@ -190,6 +190,25 @@
             color: white;
             border: none;
         }
+        /* Style for screen share button */
+.controls #share-screen {
+    width: 40px;
+    margin: 20px 10px;
+    cursor: pointer;
+    transition: transform 0.5s;
+}
+
+.controls #share-screen:hover {
+    transform: translateY(-10px);
+}
+
+/* Style for screen share video */
+video.screen {
+    border: 2px solid #7289da; /* Visual distinction for shared screen */
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
     </style>
 </head>
 <body>
@@ -218,6 +237,7 @@
                         <img src = "https://i.postimg.cc/4xpdz6bP/video-icon-removebg-preview.png" id = "toggle-video">
                         <img src="https://i.postimg.cc/fyJH8G00/call.png" id="disconnect-icon">
                         <img src="https://i.postimg.cc/BQmWRXZ3/chat-icon.png" id="chat-icon">
+                        <img src="https://i.postimg.cc/4NJ0pP5x/screen-share.png" id="share-screen" alt="Share Screen">
 
                     </div>
                 </div>
@@ -258,63 +278,117 @@
             <button type="submit">Send</button>
         </form>
     </div>
-
     <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const socket = io();
-            const chatIcon = document.getElementById('chat-icon');
-            const chatContainer = document.getElementById('chat-container');
-            const closeChatBtn = document.getElementById('close-chat-btn');
-            const chatMessages = document.getElementById('chat-messages');
-            const chatForm = document.getElementById('chat-form');
-            const chatInput = document.getElementById('chat-input');
+     document.addEventListener('DOMContentLoaded', () => {
+    const socket = io();
+    const chatIcon = document.getElementById('chat-icon');
+    const chatContainer = document.getElementById('chat-container');
+    const closeChatBtn = document.getElementById('close-chat-btn');
+    const chatMessages = document.getElementById('chat-messages');
+    const chatForm = document.getElementById('chat-form');
+    const chatInput = document.getElementById('chat-input');
+    const shareScreenButton = document.getElementById('share-screen');
+    const videoGrid = document.getElementById('video-grid');
+    const myPeer = new Peer(); // Initialize PeerJS
 
-            socket.emit('join-room', ROOM_ID, USER_ID);
+    socket.emit('join-room', ROOM_ID, USER_ID);
 
-            chatIcon.addEventListener('click', () => {
-                chatContainer.style.display = 'block';
-                chatIcon.style.display = 'none';
+    chatIcon.addEventListener('click', () => {
+        chatContainer.style.display = 'block';
+        chatIcon.style.display = 'none';
+    });
+
+    closeChatBtn.addEventListener('click', () => {
+        chatContainer.style.display = 'none';
+        chatIcon.style.display = 'block';
+    });
+
+    chatForm.addEventListener('submit', (event) => {
+        event.preventDefault();
+        const message = chatInput.value.trim();
+        if (message) {
+            socket.emit('chat-message', { user: USER_ID, message });
+            chatInput.value = '';
+        }
+    });
+
+    socket.on('chat-message', (msg) => {
+        const messageElement = document.createElement('div');
+        messageElement.textContent = `${msg.user}: ${msg.message}`;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    });
+
+    shareScreenButton.addEventListener('click', async () => {
+        try {
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: {
+                    cursor: "always"
+                },
+                audio: false
             });
+            handleStream(stream, 'screen');
+        } catch (error) {
+            console.error('Error sharing screen:', error);
+        }
+    });
 
-            closeChatBtn.addEventListener('click', () => {
-                chatContainer.style.display = 'none';
-                chatIcon.style.display = 'block';
-            });
+    const handleStream = (stream, type = 'video') => {
+        const videoElement = document.createElement('video');
+        videoElement.srcObject = stream;
+        videoElement.classList.add(type); // Add type class (e.g., 'screen' or 'video')
+        videoElement.autoplay = true;
+        videoGrid.appendChild(videoElement);
 
-            chatForm.addEventListener('submit', (event) => {
-                event.preventDefault();
-                const message = chatInput.value.trim();
-                if (message) {
-                    socket.emit('chat-message', { user: USER_ID, message });
-                    chatInput.value = '';
-                }
-            });
+        stream.getVideoTracks()[0].addEventListener('ended', () => {
+            videoElement.remove(); // Remove video element when screen sharing stops
+        });
 
-            // Receive and display chat messages
-            socket.on('chat-message', (msg) => {
-                const messageElement = document.createElement('div');
-                messageElement.textContent = `${msg.user}: ${msg.message}`;
-                chatMessages.appendChild(messageElement);
-                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to bottom
-            });
-
-            const disconnectIcon = document.getElementById('disconnect-icon');
-            disconnectIcon.addEventListener('click', () => {
-                // Stop all media tracks
-                const videoGrid = document.getElementById('video-grid');
-                videoGrid.querySelectorAll('video').forEach(video => {
-                    video.srcObject.getTracks().forEach(track => track.stop());
-                });
-
-                // Close PeerJS connection
-                if (window.peer) {
-                    window.peer.destroy();
-                }
-
-                // Redirect to the dashboard
-                window.location.href = '/';
+        // PeerJS and Socket.IO integration for stream sharing
+        myPeer.on('call', call => {
+            call.answer(stream);
+            const peerVideo = document.createElement('video');
+            call.on('stream', userVideoStream => {
+                addVideoStream(peerVideo, userVideoStream);
             });
         });
+
+        socket.on('user-connected', userId => {
+            connectToNewUser(userId, stream);
+        });
+
+        const connectToNewUser = (userId, stream) => {
+            const call = myPeer.call(userId, stream);
+            const video = document.createElement('video');
+            call.on('stream', userVideoStream => {
+                addVideoStream(video, userVideoStream);
+            });
+        };
+
+        const addVideoStream = (video, stream) => {
+            video.srcObject = stream;
+            video.addEventListener('loadedmetadata', () => {
+                video.play();
+            });
+            videoGrid.appendChild(video);
+        };
+    };
+
+    const disconnectIcon = document.getElementById('disconnect-icon');
+    disconnectIcon.addEventListener('click', () => {
+        const videoGrid = document.getElementById('video-grid');
+        videoGrid.querySelectorAll('video').forEach(video => {
+            video.srcObject.getTracks().forEach(track => track.stop());
+        });
+
+        if (myPeer) {
+            myPeer.destroy();
+        }
+
+        window.location.href = '/';
+    });
+});
+
     </script>
 </body>
 </html>
