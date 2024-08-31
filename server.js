@@ -14,6 +14,7 @@ const fs = require('fs');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const profileRoutes = require('./profileRoutes');
 
 console.log('Setting view engine to ejs...');
 app.set('view engine', 'ejs');
@@ -55,6 +56,8 @@ if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
 }
 
+
+app.use(profileRoutes);  
 app.post('/forgot-password', (req, res) => {
     const { username } = req.body;
 

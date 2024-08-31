@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <style>
+        body {
+            background: rgb(99, 39, 120);
+            font-family: Arial, sans-serif;
+            color: #333;
+        }
+
+        .container {
+            margin-top: 50px;
+            margin-bottom: 50px;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 10px;
+        }
+
+        .profile-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .profile-header h1 {
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .profile-img {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .profile-img img {
+            border-radius: 50%;
+            width: 150px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            box-shadow: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #BA68C8;
+        }
+
+        .profile-button {
+            background: rgb(99, 39, 120);
+            color: #fff;
+            padding: 10px 20px;
+            border-radius: 5px;
+            border: none;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .profile-button:hover {
+            background: #682773;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 20px;
+            color: #333;
+        }
+
+        .back-link:hover {
+            color: #682773;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="profile-header">
+            <h1>Profile</h1>
+        </div>
+
+        <div class="profile-img">
+            <% if (user.profilePicture) { %>
+                <img src="/uploads/<%= user.profilePicture %>" alt="Profile Picture">
+            <% } else { %>
+                <img src="https://st3.depositphotos.com/15648834/17930/v/600/depositphotos_179308454-stock-illustration-unknown-person-silhouette-glasses-profile.jpg" alt="Profile Picture">
+            <% } %>
+        </div>
+
+        <form action="/profile" method="POST" enctype="multipart/form-data">
+            <div class="form-group">
+                <label>Username:</label>
+                <input type="text" name="username" value="<%= user.username %>" readonly>
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <input type="email" name="email" value="<%= user.email %>">
+            </div>
+
+            <div class="form-group">
+                <label>Profile Picture:</label>
+                <input type="file" name="profilePicture">
+            </div>
+
+            <div class="form-group">
+                <label>Password (leave blank to keep current password):</label>
+                <input type="password" name="password">
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="profile-button">Update Profile</button>
+            </div>
+        </form>
+
+        <a href="/" class="back-link">Back to Dashboard</a>
+    </div>
+</body>
+</html>
