@@ -6,15 +6,45 @@
     <title>Dashboard</title>
     <link rel="stylesheet" href="/styles/dashboardLayout.css">
     <style>
+        /* Inline CSS for any additional or overridden styles */
         .profile-picture {
-        width: 100px;
-        height: 100px;
-        border-radius : 50%; 
-        object-fit:cover; 
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid #7289da; /* Border color matching the theme */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .settings img {
+            width: 100px; /* Adjusted size */
+            height: 100px; /* Adjusted size */
         }
     </style>
 </head>
 <body>
+    <div class="hamburger-menu">
+        <input id="menu__toggle" type="checkbox" />
+        <label class="menu__btn" for="menu__toggle">
+          <span></span>
+        </label>
+    
+        <ul class="menu__box">
+          <li><a class="menu__item" href="#">Profile</a></li>
+                <li><a class="menu__item" href="#">Freind Requests</a></li>
+                <li><a class="menu__item" href="#">Freind Lists</a></li>
+                <li><a class="menu__item" href="#">Settings</a></li>
+                <li><a class="menu__item" href="#">Notifications</a></li>
+                <li></li> <a class = "menu_item" href = "#">Logout</a>
+        </ul>
+      </div>
+    
+    <div class="settings">
+        <a href="/settings"> 
+            <img src="https://i.postimg.cc/9fLcmhW7/settings-icon.png" alt="Settings"> 
+        </a>
+    </div> 
+
     <div class="container">
         <div class="welcome-section">
             <img src="/uploads/<%= profilePicture %>" alt="Profile Picture" class="profile-picture">
@@ -33,6 +63,7 @@
             </form>
         </div>
     </div>
+
     <script>
         document.getElementById('create-room-form').addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -54,6 +85,7 @@
                 alert('An error occurred. Please try again.');
             }
         });
+
 
         document.getElementById('enter-room-form').addEventListener('submit', async (event) => {
             event.preventDefault();

@@ -228,6 +228,59 @@ app.get('/:room', (req, res) => {
     }
 });
 
+
+
+// Send a friend request 
+
+app.post('/send-friend-request', (req, res) => {
+  const {userId, friendId } = req.body; 
+
+  db.query('INSERT INTO friends (user_id, friend_id, status) VALUES (?, ?, "pending")', [userId, friendId], (err, result) => {
+    if (err) {
+        return res.status(500).send('Error sending friend request');
+    }
+    res.send('Friend request sent');
+}); 
+}); 
+
+// Accept a freind request
+
+
+app.post('/accept-friend-request', (req, res) => {
+    const {userId, friendId} = req.body; 
+    db.query('UPDATE friends SET status = "accepted" WHERE user_id = ? AND friend_id = ?', [friendId, userId], (err, result) => {
+        if (err) {
+            return res.status(500).send('Error accepting friend request');
+        }
+        res.send('Friend request accepted');
+    });
+
+});
+
+app.post('/reject-friend-request', (req, res) => {
+    const { userId, friendId } = req.body;
+
+    db.query('UPDATE friends SET status = "rejected" WHERE user_id = ? AND friend_id = ?', [friendId, userId], (err, result) => {
+        if (err) {
+            return res.status(500).send('Error rejecting friend request');
+        }
+        res.send('Friend request rejected');
+    });
+});
+
+app.get('/friends/:userId', (req, res) => {
+    const userId = req.params.userId;
+
+    db.query('SELECT users.id, users.username, friends.status FROM friends JOIN users ON (friends.friend_id = users.id) WHERE friends.user_id = ? AND friends.status = "accepted"', [userId], (err, results) => {
+        if (err) {
+            return res.status(500).send('Error fetching friends');
+        }
+        res.json(results);
+    });
+});
+
+
+
 io.on('connection', socket => {
     console.log('New connection:', socket.id);
 
