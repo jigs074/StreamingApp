@@ -60,6 +60,10 @@
             transition: border-color 0.3s;
         }
 
+        .form-group input[disabled] {
+            background-color: #f5f5f5;
+        }
+
         .form-group input:focus {
             border-color: #BA68C8;
         }
@@ -89,6 +93,25 @@
             color: #682773;
         }
     </style>
+    <script>
+        function toggleEditMode() {
+            const form = document.getElementById('profileForm');
+            const inputs = form.querySelectorAll('input:not([readonly])');
+            const editButton = document.getElementById('editButton');
+
+            if (editButton.textContent === 'Edit') {
+                inputs.forEach(input => input.disabled = false);
+                editButton.textContent = 'Save';
+            } else {
+                form.submit();
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input:not([readonly])');
+            inputs.forEach(input => input.disabled = true);  // Disable editable inputs initially
+        });
+    </script>
 </head>
 <body>
     <div class="container">
@@ -104,7 +127,7 @@
             <% } %>
         </div>
 
-        <form action="/profile" method="POST" enctype="multipart/form-data">
+        <form id="profileForm" action="/profile" method="POST" enctype="multipart/form-data">
             <div class="form-group">
                 <label>Username:</label>
                 <input type="text" name="username" value="<%= user.username %>" readonly>
@@ -126,7 +149,7 @@
             </div>
 
             <div class="form-group">
-                <button type="submit" class="profile-button">Update Profile</button>
+                <button type="button" id="editButton" class="profile-button" onclick="toggleEditMode()">Edit</button>
             </div>
         </form>
 
