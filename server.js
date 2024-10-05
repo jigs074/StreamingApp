@@ -15,7 +15,7 @@ const multer = require('multer');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 const profileRoutes = require('./profileRoutes');
-
+const friendsRoute = require('./friendsRoute'); 
 console.log('Setting view engine to ejs...');
 app.set('view engine', 'ejs');
 console.log('View engine set successfully.');
@@ -55,9 +55,10 @@ const uploadsDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadsDir)) {
     fs.mkdirSync(uploadsDir);
 }
-
+ 
 
 app.use(profileRoutes);  
+app.use(friendsRoute); 
 app.post('/forgot-password', (req, res) => {
     const { username } = req.body;
 
@@ -230,58 +231,6 @@ app.get('/:room', (req, res) => {
         res.redirect('/login');
     }
 });
-
-
-
-// Send a friend request 
-
-app.post('/send-friend-request', (req, res) => {
-  const {userId, friendId } = req.body; 
-
-  db.query('INSERT INTO friends (user_id, friend_id, status) VALUES (?, ?, "pending")', [userId, friendId], (err, result) => {
-    if (err) {
-        return res.status(500).send('Error sending friend request');
-    }
-    res.send('Friend request sent');
-}); 
-}); 
-
-// Accept a freind request
-
-
-app.post('/accept-friend-request', (req, res) => {
-    const {userId, friendId} = req.body; 
-    db.query('UPDATE friends SET status = "accepted" WHERE user_id = ? AND friend_id = ?', [friendId, userId], (err, result) => {
-        if (err) {
-            return res.status(500).send('Error accepting friend request');
-        }
-        res.send('Friend request accepted');
-    });
-
-});
-
-app.post('/reject-friend-request', (req, res) => {
-    const { userId, friendId } = req.body;
-
-    db.query('UPDATE friends SET status = "rejected" WHERE user_id = ? AND friend_id = ?', [friendId, userId], (err, result) => {
-        if (err) {
-            return res.status(500).send('Error rejecting friend request');
-        }
-        res.send('Friend request rejected');
-    });
-});
-
-app.get('/friends/:userId', (req, res) => {
-    const userId = req.params.userId;
-
-    db.query('SELECT users.id, users.username, friends.status FROM friends JOIN users ON (friends.friend_id = users.id) WHERE friends.user_id = ? AND friends.status = "accepted"', [userId], (err, results) => {
-        if (err) {
-            return res.status(500).send('Error fetching friends');
-        }
-        res.json(results);
-    });
-});
-
 
 
 io.on('connection', socket => {

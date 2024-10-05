@@ -1,0 +1,60 @@
+<div id = "pending-requests">
+<h3> Pending Friend Requests </h3>
+</div>
+
+
+<script>
+fetch('/pending-requests')
+.then(response => response.json())
+.then(data => {
+    const list = document.getElementById('pending-requests-list'); 
+
+    list.innerHTML = ''; 
+
+    data.forEach(request => {
+        const item = document.createElement('li'); 
+        item.textContent = `Friend request from ${request.username}`; 
+
+        const acceptButton = document.createElement('button'); 
+        acceptButton.textContent = 'Accept'; 
+        acceptButton.onclick = () => handleAccept(request.username); 
+
+
+        const rejectButton = document.createElement('button'); 
+        rejectButton.textContent = 'Rejected'; 
+
+        rejectButton.onclick = () => handleReject(request.username); 
+        item.appendChild(acceptButton);
+            item.appendChild(rejectButton);
+            list.appendChild(item);
+
+
+    }); 
+}); 
+function handleAccept(userUsername) {
+    fetch('/accept-friend-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userUsername })
+    })
+    .then(response => response.text())
+    .then(message => {
+        alert(message);
+        location.reload();
+    });
+}
+
+function handleReject(userUsername) {
+    fetch('/reject-friend-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userUsername })
+    })
+    .then(response => response.text())
+    .then(message => {
+        alert(message);
+        location.reload();
+    });
+}
+
+</script>

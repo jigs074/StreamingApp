@@ -1,0 +1,23 @@
+<form id="send-friend-request-form">
+    <input type="text" name="friendUsername" placeholder="Enter friend's username" required>
+    <button type="submit">Send Friend Request</button>
+</form>
+
+
+
+<script> 
+    document.getElementById('send-friend-request-form').addEventListener('submit', function(e){
+    e.preventDefault(); 
+    const friendUsername = e.target.friendUsername.value; 
+    fetch('/send-friend-request', {
+     method : 'POST',
+     headers : {'Content-Type' : 'application/json'}, 
+     body : JSON.stringify({friendUsername})
+    })
+    .then(response => response.text())
+    .then(message => {
+       alert(message); 
+    }); 
+
+    }); 
+</script>
