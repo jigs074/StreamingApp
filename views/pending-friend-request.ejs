@@ -1,0 +1,57 @@
+<div id = "friend-requests-container">
+
+    <!-- Friend Requests will be populated here -->
+</div>
+
+
+
+<script>
+    // Fetch Pending Friend Requests
+
+    fetch('/pendingFriendRequests')
+    .then(response => response.json())
+    .then(requests =>{
+        const requestElement = document.getElementById('friend-requests-container'); 
+        requests.forEach(request => {
+            const requestElement = document.createElement('div'); 
+            requestElement.innerHTML = `
+                    <p>Friend request from ${request.requester_username}</p>
+                    <button onclick="acceptRequest(${request.id})">Accept</button>
+                    <button onclick="rejectRequest(${request.id})">Reject</button>
+                `;
+                container.appendChild(requestElement); 
+
+
+        }); 
+
+    }); 
+
+    function acceptRequest(requestId) {
+        fetch('/acceptFriendRequest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId })
+        })
+        .then(response => response.text())
+        .then(message => {
+            alert(message);
+            location.reload();  // Reload page to refresh requests
+        });
+    }
+
+    // Reject friend request
+    function rejectRequest(requestId) {
+        fetch('/rejectFriendRequest', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ requestId })
+        })
+        .then(response => response.text())
+        .then(message => {
+            alert(message);
+            location.reload();  // Reload page to refresh requests
+        });
+    }
+
+
+</script>
