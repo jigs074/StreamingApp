@@ -1,125 +1,178 @@
 const express = require('express'); 
 const router = express.Router();
-const db  = require('./db'); 
-const path = require('path'); 
-const multer = require('multer');
-const fs = require('fs');
+const db = require('./db'); 
 
+// GET route to render send friend request page
+router.get('/send-friend-request', (req, res) => {
+    if (!req.session.username) {
+        return res.status(401).send('You need to be logged in to send the friend requests');
+    }
+    res.render('send-friend-request');
+});
 
+router.get('/accept-friend-request', (req, res) => {
+    if (!req.session.username) {
+        return res.status(401).send('You need to be logged in to send the friend requests');
+    }
+    res.render('accept-friend-request');
+});
+// POST route to send a friend request
+// Send Friend Request Route
+router.post('/sendFriendRequest', (req, res) => {
+    const { friendUsername } = req.body;
+    const requesterUsername = req.session.username; // Retrieve username from session
 
-router.get('/send-friend-request', (req, res)=> {
-
-    if (!req.session.username){
-        return res.status(401).send('You need to be logged in to send the freind requests'); 
+    if (!requesterUsername) {
+        return res.status(401).json({ error: 'Unauthorized: Please log in.' });
     }
 
-    res.render('send-friend-request'); 
+    // Step 1: Find the requester ID by username
+    db.query('SELECT id FROM users WHERE username = ?', [requesterUsername], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const requesterId = results[0].id;
 
-})
-// Send a friend request 
+        // Step 2: Find the friend ID by username
+        db.query('SELECT id FROM users WHERE username = ?', [friendUsername], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const friendId = results[0].id;
 
-// Route to send a friend request from User A to User B
-// Route to send a friend request from User A to User B (using username)
-router.post('/send-friend-request', (req, res) => {
-    const { friendUsername } = req.body;  // The username of User B
-    const userUsername = req.session.username;  // User A's username
-
-    // Retrieve User B's ID based on username
-    db.query(`SELECT id FROM users WHERE username = ?`, [friendUsername], (err, results) => {
-        if (err) return res.status(500).send('Error retrieving user ID');
-        if (results.length === 0) return res.status(404).send('User not found');
-
-        const friendId = results[0].id;  // User B's ID
-
-        // Check if the users are already friends or if a pending request exists
-        db.query(`
-            SELECT * FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)
-        `, [req.session.userId, friendId, friendId, req.session.userId], (err, results) => {
-            if (err) return res.status(500).send('Error sending friend request');
-            if (results.length > 0) return res.status(400).send('Friend request already exists or users are already friends');
-
-            // Insert the friend request with 'pending' status
-            db.query(`
-                INSERT INTO friends (user_id, friend_id, status) VALUES (?, ?, 'pending')
-            `, [req.session.userId, friendId], (err) => {
-                if (err) return res.status(500).send('Error sending friend request');
-                res.send('Friend request sent successfully');
-            });
+            // Step 3: Insert the friend request into friend_requests table
+            db.query(
+                'INSERT INTO friend_requests (requester_id, receiver_id, status) VALUES (?, ?, ?)',
+                [requesterId, friendId, 'pending'],
+                (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error sending friend request' });
+                    }
+                    res.json({ message: 'Friend request sent successfully!' });
+                }
+            );
         });
     });
 });
 
+// POST route to accept a friend request
+// Accept Friend Request Route
+router.post('/acceptFriendRequest', (req, res) => {
+    const { requesterUsername } = req.body; // The username of the person whose friend request is being accepted
+    const receiverUsername = req.session.username; // The username of the person accepting the request
 
-  
-  // Accept a freind request
-  
-  
+    if (!receiverUsername) {
+        return res.status(401).json({ error: 'Unauthorized: Please log in.' });
+    }
 
-router.post('/accept-friend-request', (req, res) => {
-    const { userUsername } = req.body;  // User A's username
-    const friendId = req.session.userId;  // User B's ID
+    // Step 1: Find the receiver ID by username
+    db.query('SELECT id FROM users WHERE username = ?', [receiverUsername], (err, results) => {
+        if (err) {
+            return res.status(500).json({ error: 'Database error' });
+        }
+        
+        if (results.length === 0) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+        
+        const receiverId = results[0].id;
 
-    // Retrieve User A's ID based on username
-    db.query(`SELECT id FROM users WHERE username = ?`, [userUsername], (err, results) => {
-        if (err) return res.status(500).send('Error retrieving user ID');
-        if (results.length === 0) return res.status(404).send('User not found');
+        // Step 2: Find the requester ID by username
+        db.query('SELECT id FROM users WHERE username = ?', [requesterUsername], (err, results) => {
+            if (err) {
+                return res.status(500).json({ error: 'Database error' });
+            }
+            
+            if (results.length === 0) {
+                return res.status(404).json({ error: 'User not found' });
+            }
+            
+            const requesterId = results[0].id;
 
-        const userId = results[0].id;  // User A's ID
+            // Step 3: Update the friend request status to "accepted"
+            db.query(
+                'UPDATE friend_requests SET status = ? WHERE requester_id = ? AND receiver_id = ?',
+                ['accepted', requesterId, receiverId],
+                (err) => {
+                    if (err) {
+                        return res.status(500).json({ error: 'Error accepting friend request' });
+                    }
 
-        // Update the friend request status to 'accepted'
-        db.query(`
-            UPDATE friends SET status = 'accepted' WHERE user_id = ? AND friend_id = ? AND status = 'pending'
-        `, [userId, friendId], (err, result) => {
-            if (err) return res.status(500).send('Error accepting friend request');
-            if (result.affectedRows === 0) return res.status(400).send('No pending friend request found');
-            res.send('Friend request accepted');
+                    // Step 4: Optionally, you can insert a record in a friends table (if needed)
+                    db.query(
+                        'INSERT INTO friends (user_id, friend_id) VALUES (?, ?)',
+                        [receiverId, requesterId],
+                        (err) => {
+                            if (err) {
+                                return res.status(500).json({ error: 'Error adding friend' });
+                            }
+                            res.json({ message: 'Friend request accepted successfully!' });
+                        }
+                    );
+                }
+            );
         });
     });
 });
 
- // Reject the friend request
+// POST route to reject a friend request
 router.post('/reject-friend-request', (req, res) => {
-    const { userId } = req.body;  // User A's ID (the one who sent the request)
-    const friendId = req.session.userId;  // User B's ID (from session)
+    const { userId } = req.body; // The sender's user ID
+    const friendId = req.session.userId; // The logged-in user's ID
 
     // Delete the pending friend request
-    db.query(`
-        DELETE FROM friends WHERE user_id = ? AND friend_id = ? AND status = 'pending'
-    `, [userId, friendId], (err, result) => {
-        if (err) return res.status(500).send('Error rejecting friend request');
-        if (result.affectedRows === 0) return res.status(400).send('No pending friend request found');
-        res.send('Friend request rejected');
-    });
+    db.query(
+        `DELETE FROM friend_requests WHERE user_id = ? AND friend_id = ? AND status = 'pending'`,
+        [userId, friendId],
+        (err, result) => {
+            if (err) return res.status(500).send('Error rejecting friend request');
+            if (result.affectedRows === 0) return res.status(400).send('No pending friend request found');
+            res.send('Friend request rejected');
+        }
+    );
 });
 
-  
-  router.get('/friends/:userId', (req, res) => {
-      const userId = req.params.userId;
-  
-      db.query('SELECT users.id, users.username, friends.status FROM friends JOIN users ON (friends.friend_id = users.id) WHERE friends.user_id = ? AND friends.status = "accepted"', [userId], (err, results) => {
-          if (err) {
-              return res.status(500).send('Error fetching friends');
-          }
-          res.json(results);
-      });
-  });
-  
- // Fetch pending friend requests for the logged-in user (User B)
+// GET route to fetch a user's accepted friends
+router.get('/friends/:userId', (req, res) => {
+    const userId = req.params.userId;
 
+    db.query(
+        `SELECT users.id, users.username, friend_requests.status FROM friend_requests 
+         JOIN users ON friend_requests.friend_id = users.id 
+         WHERE friend_requests.user_id = ? AND friend_requests.status = 'accepted'`, 
+        [userId], 
+        (err, results) => {
+            if (err) return res.status(500).send('Error fetching friends');
+            res.json(results);
+        }
+    );
+});
+
+// GET route to fetch pending friend requests for the logged-in user
 router.get('/pending-requests', (req, res) => {
-    const friendId = req.session.userId;  // User B's ID
+    const friendId = req.session.userId; // The logged-in user's ID
 
-    // Fetch pending friend requests where User B is the recipient
-    db.query(`
-        SELECT u.username FROM friends f
-        JOIN users u ON f.user_id = u.id
-        WHERE f.friend_id = ? AND f.status = 'pending'
-    `, [friendId], (err, results) => {
-        if (err) return res.status(500).send('Error fetching pending requests');
-        res.json(results);  // Send the pending requests
-    });
+    // Fetch pending friend requests
+    db.query(
+        `SELECT u.username FROM friend_requests fr 
+         JOIN users u ON fr.user_id = u.id 
+         WHERE fr.friend_id = ? AND fr.status = 'pending'`,
+        [friendId], 
+        (err, results) => {
+            if (err) return res.status(500).send('Error fetching pending requests');
+            res.json(results);
+        }
+    );
 });
 
-
-module.exports = router; 
-  
+module.exports = router;

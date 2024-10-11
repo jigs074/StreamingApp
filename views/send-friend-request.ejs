@@ -9,7 +9,7 @@
     document.getElementById('send-friend-request-form').addEventListener('submit', function(e){
     e.preventDefault(); 
     const friendUsername = e.target.friendUsername.value; 
-    fetch('/send-friend-request', {
+    fetch('/sendFriendRequest', {
      method : 'POST',
      headers : {'Content-Type' : 'application/json'}, 
      body : JSON.stringify({friendUsername})

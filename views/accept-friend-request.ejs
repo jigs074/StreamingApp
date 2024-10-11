@@ -1,0 +1,29 @@
+<form id="accept-friend-request-form">
+    <input type="text" name="requesterUsername" placeholder="Enter requester's username" required>
+    <button type="submit">Accept Friend Request</button>
+</form>
+
+<script> 
+    document.getElementById('accept-friend-request-form').addEventListener('submit', function(e){
+        e.preventDefault(); 
+        const requesterUsername = e.target.requesterUsername.value; 
+        fetch('/acceptFriendRequest', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({requesterUsername})
+        })
+        .then(response => response.json()) // Parse response as JSON
+        .then(data => {
+            // Check if there is an error in the response
+            if (data.error) {
+                alert(data.error); // Display the error message
+            } else {
+                alert(data.message); // Display the success message
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred while processing your request.'); // Display a generic error message
+        });
+    }); 
+</script>
