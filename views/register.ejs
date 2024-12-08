@@ -1,193 +1,250 @@
-<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register</title>
-    <link rel="preconnect" href="https://fonts.gstatic.com">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
-    <style media="screen">
-        *,
-        *:before,
-        *:after {
-          padding: 0;
-          margin: 0;
-          box-sizing: border-box;
+    <title>Linkup - Register</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
-    
+
         body {
-        
-          background-color: #080710;
+            font-family: 'Inter', sans-serif;
+            background: #0d0d0d;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            position: relative;
         }
-    
-        .background {
-          width: 430px;
-          height: 520px;
-          position: absolute;
-          transform: translate(-50%, -50%);
-          left: 50%;
-          top: 50%;
+
+        /* Main Container */
+        .container {
+            text-align: center;
+            width: 100%;
+            padding: 20px;
         }
-    
-        .background .shape {
-          height: 200px;
-          width: 200px;
-          position: absolute;
-          border-radius: 50%;
+
+        /* Website Title */
+        .website-title {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #f3567d;
+            margin-bottom: 30px;
+            text-shadow: 0 5px 15px rgba(243, 86, 125, 0.8);
         }
-    
-        .shape:first-child {
-          background: linear-gradient(#1845ad,
-              #23a2f6);
-          left: -80px;
-          top: -80px;
+
+        /* Login/Register Box */
+        .login-box {
+            background: #1c1c1c;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+            display: inline-block;
+            width: 100%;
+            max-width: 400px;
+            text-align: left;
         }
-    
-        .shape:last-child {
-          background: linear-gradient(to right,
-              #ff512f,
-              #f09819);
-          right: -30px;
-          bottom: -80px;
+
+        .login-box h2 {
+            text-align: center;
+            margin-bottom: 20px;
         }
-    
-        form {
-          height: 520px;
-          width: 400px;
-          background-color: rgba(255, 255, 255, 0.13);
-          position: absolute;
-          transform: translate(-50%, -50%);
-          top: 50%;
-          left: 50%;
-          border-radius: 10px;
-          backdrop-filter: blur(10px);
-          border: 2px solid rgba(255, 255, 255, 0.1);
-          box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
-          padding: 50px 35px;
+
+        .login-box form {
+            display: flex;
+            flex-direction: column;
         }
-    
-        form * {
-          font-family: 'Poppins', sans-serif;
-          color: #ffffff;
-          letter-spacing: 0.5px;
-          outline: none;
-          border: none;
+
+        .login-box label {
+            margin-bottom: 5px;
+            font-weight: bold;
+            font-size: 14px;
         }
-    
-        form h3 {
-          font-size: 32px;
-          font-weight: 500;
-          line-height: 42px;
-          text-align: center;
+
+        .login-box input {
+            padding: 10px;
+            margin-bottom: 20px;
+            border: none;
+            border-radius: 5px;
+            background: #2c2c2c;
+            color: #fff;
         }
-    
-        label {
-          display: block;
-          margin-top: 30px;
-          font-size: 16px;
-          font-weight: 500;
+
+        .login-box button {
+            background: linear-gradient(90deg, #007BFF, #00D1FF);
+            color: #fff;
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: 0.3s;
         }
-    
-        input {
-          display: block;
-          height: 50px;
-          width: 100%;
-          background-color: rgba(255, 255, 255, 0.07);
-          border-radius: 3px;
-          padding: 0 10px;
-          margin-top: 8px;
-          font-size: 14px;
-          font-weight: 300;
+
+        .login-box button:hover {
+            background: linear-gradient(90deg, #0056b3, #00a2d1);
         }
-    
-        ::placeholder {
-          color: #e5e5e5;
+
+        .login-box p {
+            text-align: center;
+            margin-top: 10px;
+            color: #aaa;
+            font-size: 14px;
         }
-    
-        button {
-          margin-top: 50px;
-          width: 100%;
-          background-color: #ffffff;
-          color: #080710;
-          padding: 15px 0;
-          font-size: 18px;
-          font-weight: 600;
-          border-radius: 5px;
-          cursor: pointer;
+
+        .login-box a {
+            color: #00D1FF;
+            text-decoration: none;
         }
-    
-        .login-link {
-          margin-top: 20px;
-          display: flex;
-          justify-content: center;
+
+        /* Features Section */
+        .features {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin-top: 50px;
+            color: #fff;
         }
-    
-        .login-link a {
-          color: #000000;
-          text-decoration: none;
-          font-weight: 500;
+
+        .feature {
+            text-align: center;
+            max-width: 200px;
         }
-    
-        .login-link a:hover {
-          text-decoration: underline;
+
+        .feature i {
+            font-size: 40px;
+            color: #00D1FF;
+            margin-bottom: 10px;
         }
-    
-        .social {
-          margin-top: 30px;
-          display: flex;
+
+        .feature h4 {
+            font-size: 18px;
+            margin-bottom: 8px;
         }
-    
-        .social div {
-          background: red;
-          width: 150px;
-          border-radius: 3px;
-          padding: 5px 10px 10px 5px;
-          background-color: rgba(255, 255, 255, 0.27);
-          color: #eaf0fb;
-          text-align: center;
+
+        .feature p {
+            font-size: 14px;
+            color: #ccc;
         }
-    
-        .social div:hover {
-          background-color: rgba(255, 255, 255, 0.47);
+
+        /* Social Media */
+        .social-media {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            display: flex;
+            gap: 15px;
         }
-    
-        .social .fb {
-          margin-left: 25px;
+
+        .social-media a {
+            text-decoration: none;
+            color: #fff;
+            font-size: 20px;
+            transition: transform 0.2s ease, color 0.2s ease;
         }
-    
-        .social i {
-          margin-right: 4px;
+
+        .social-media a:hover {
+            transform: scale(1.2);
+            color: #00D1FF;
         }
-      </style>
-   
+
+        /* Footer */
+        .footer {
+            position: absolute;
+            bottom: 10px;
+            width: 100%;
+            text-align: center;
+            color: #777;
+            font-size: 14px;
+        }
+
+        .footer-links {
+            margin-top: 5px;
+        }
+
+        .footer-links a {
+            margin: 0 10px;
+            text-decoration: none;
+            color: #aaa;
+            transition: color 0.2s ease;
+        }
+
+        .footer-links a:hover {
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
-    <div class = "background">
-        <div class = "shape"> </div>
-        <div class = "shape"> </div>
-    </div>
-    
-    <form action="/register" method="post" enctype = "multipart/form-data">
-        <h3>Register </h3>
-        <label for="email">Email Address:</label>
-        <input type="email" id="email" name="email" required>
-        <br>
-        <label for="username">Username:</label>
-        <input type="text" id="username" name="username" required>
-        <br>
-        <label for="password">Password:</label>
-        <input type="password" id="password" name="password" required>
-        <br>
-        <label for = "profilePicture"> Profile Picture: </label>
-        <input type = "file" id = "profilePicture" name = "profilePicture"> 
+    <!-- Main Container -->
+    <div class="container">
+        <!-- Website Title -->
+        <h1 class="website-title">Linkup</h1>
 
-        <button type="submit">Register</button>
-        <div class="login-link">
-            <span style="color: black;">Already have an account? </span>
-            <a href="/login">Login</a>
+        <!-- Register Form -->
+        <div class="login-box">
+            <h2>Register</h2>
+            <form action="/register" method="post">
+                <label for="username">Username</label>
+                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+
+                <label for="email">Email</label>
+                <input type="email" id="email" name="email" placeholder="Enter your email" required>
+
+                <label for="password">Password</label>
+                <input type="password" id="password" name="password" placeholder="Enter your password" required>
+
+                <label for="confirm-password">Confirm Password</label>
+                <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
+
+                <button type="submit">Register</button>
+            </form>
+            <div class="login-link">
+                <p>Already have an account? <a href="/login">Login</a></p>
+            </div>
         </div>
-    </form>
+
+        <!-- Features and Benefits -->
+        <div class="features">
+            <div class="feature">
+                <i class="fas fa-lock"></i>
+                <h4>Secure & Private</h4>
+                <p>We prioritize your data's security and privacy.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-bolt"></i>
+                <h4>Fast & Reliable</h4>
+                <p>Experience lightning-fast connections anywhere.</p>
+            </div>
+            <div class="feature">
+                <i class="fas fa-globe"></i>
+                <h4>Connect Globally</h4>
+                <p>Bridge distances with seamless global access.</p>
+            </div>
+        </div>
+
+        <!-- Social Media Links -->
+        <div class="social-media">
+            <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
+            <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
+            <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
+        </div>
+
+        <!-- Footer Section -->
+        <footer class="footer">
+            <p>&copy; 2024 Linkup. All rights reserved.</p>
+            <div class="footer-links">
+                <a href="#">About Us</a>
+                <a href="#">Privacy Policy</a>
+                <a href="#">Help Center</a>
+            </div>
+        </footer>
+    </div>
 </body>
 </html>
- 
