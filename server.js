@@ -19,7 +19,8 @@ const friendsRoute = require('./friendsRoute');
 console.log('Setting view engine to ejs...');
 app.set('view engine', 'ejs');
 console.log('View engine set successfully.');
-const emailExistence = require ('email-existence'); 
+// const emailExistence = require ('email-existence'); 
+const { Storage } = require('@google-cloud/storage'); 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -40,23 +41,44 @@ const transporter = nodemailer.createTransport({
         pass: process.env.EMAIL_PASS
     }
 });
+
 let pendingRegistrations = {}; 
+
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, 'uploads/');
     },
     filename: (req, file, cb) => {
-        cb(null, `${Date.now()}-${file.originalname}`);
-    }
+        const uniqueName = `${Date.now()}-${file.originalname}`;
+        cb(null, uniqueName);
+    },
 });
-const upload = multer({ storage });
+const upload = multer({ storage: storage });
 
-const uploadsDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadsDir)) {
-    fs.mkdirSync(uploadsDir);
-}
- 
+// Google Cloud Storage Setup
+const gcsStorage = new Storage({
+    keyFilename: path.join(__dirname,'Key.json'),
+    projectId: 't-osprey-444617-u6',
+});
+const bucketName = 'xynq-storage-bucket';
 
+
+// const sendOtpEmail = async (email, otp) => {
+//     const mailOptions = {
+//         from: process.env.EMAIL_USER,
+//         to: email,
+//         subject: 'Your OTP Code for Registration',
+//         html: `Your OTP code is ${otp}. It will expire in 10 minutes.`,
+//     };
+
+//     try {
+//         await transporter.sendMail(mailOptions);
+//         console.log('OTP email sent to:', email);
+//     } catch (err) {
+//         console.error('Failed to send OTP email:', err);
+//         throw new Error('Email delivery failed');
+//     }
+// };
 app.use(profileRoutes);  
 app.use(friendsRoute); 
 app.post('/forgot-password', (req, res) => {
@@ -97,55 +119,96 @@ app.post('/forgot-password', (req, res) => {
 app.post('/verify-otp', (req, res) => {
     const { email, otp } = req.body;
 
+    // Initialize successMessage to null by default
+    let successMessage = null;
+
     // Validate input
     if (!email || !otp) {
         return res.render('verify-otp', {
             email,
-            errorMessage: 'Email and OTP are required',
-            successMessage: null
+            errorMessage: 'Email and OTP are required.',
+            successMessage,
+        });
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { // Validate email format
+        return res.render('verify-otp', {
+            email,
+            errorMessage: 'Invalid email format.',
+            successMessage,
+        });
+    }
+
+    if (isNaN(otp)) { // Ensure OTP is numeric
+        return res.render('verify-otp', {
+            email,
+            errorMessage: 'OTP must be a numeric value.',
+            successMessage,
         });
     }
 
     // Check OTP in pendingRegistrations
     const userData = pendingRegistrations[email];
+
     if (!userData) {
         return res.render('verify-otp', {
             email,
             errorMessage: 'Invalid or expired OTP. Please try again.',
-            successMessage: null
+            successMessage,
         });
     }
 
-    if (parseInt(otp) !== userData.otp) {
+    // Check OTP expiry (assuming a 10-minute validity period)
+    const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
+    if (Date.now() - userData.createdAt > OTP_EXPIRY_MS) {
+        delete pendingRegistrations[email]; // Clean up expired entry
+        return res.render('verify-otp', {
+            email,
+            errorMessage: 'OTP has expired. Please register again.',
+            successMessage,
+        });
+    }
+
+
+    const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+    
+    // Compare the hashed OTP with the stored OTP hash
+    if (otpHash !== userData.otpHash) {
         return res.render('verify-otp', {
             email,
             errorMessage: 'Incorrect OTP. Please try again.',
-            successMessage: null
+            successMessage: null,
         });
     }
 
-    // OTP is correct: finalize the registration
-    db.query(
-        'INSERT INTO users (username, email, password, profilePicture) VALUES (?, ?, ?, ?)',
-        [userData.username, email, userData.hashedPassword, userData.profilePicture],
-        (err) => {
-            if (err) {
-                console.error('Database error:', err);
-                return res.render('verify-otp', {
+        // OTP is correct: finalize the registration
+        db.query(
+            'INSERT INTO users (username, email, password, profilePicture) VALUES (?, ?, ?, ?)',
+            [userData.username, email, userData.hashedPassword, userData.profilePicture],
+            (err) => {
+                if (err) {
+                    console.error('Database error:', err);
+                    delete pendingRegistrations[email]; // Clean up sensitive data
+                    return res.render('verify-otp', {
+                        email,
+                        errorMessage: 'An error occurred. Please try again later.',
+                        successMessage,
+                    });
+                }
+
+                // Successfully registered
+                delete pendingRegistrations[email]; // Clean up temporary storage
+
+                // Set successMessage and render the view
+                successMessage = 'Registration successful! You can now log in.';
+                res.render('verify-otp', {
                     email,
-                    errorMessage: 'An error occurred. Please try again later.',
-                    successMessage: null
+                    successMessage,
+                    errorMessage: null, // Ensure errorMessage is cleared
                 });
             }
-
-            // Successfully registered
-            delete pendingRegistrations[email]; // Clean up temporary storage
-
-            // Redirect to the login page
-            res.redirect('/login');
-        }
-    );
-});
+        );
+    });
 
 
 
@@ -180,70 +243,123 @@ app.get('/register', (req, res) => {
     res.render('register');
 });
 
-app.post('/register', upload.single('profilePicture'), async (req, res) => {
-    const { username, password, email } = req.body;
-    const profilePicture = req.file ? req.file.filename : 'default-profile.png';
 
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.status(400).send('Invalid email format');
+
+app.post('/register', upload.single('profilePicture'), async (req, res) => {
+    const { username, email, password } = req.body;
+
+    // Validate input fields
+    if (!username || !email || !password) {
+        return res.render('register', {
+            errorMessage: 'All fields are required',
+            successMessage: null,
+        });
     }
 
-    // Check email existence via SMTP (using email-existence module)
-    
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/; // Simple email regex pattern
+    if (!emailRegex.test(email)) {
+        return res.render('register', {
+            errorMessage: 'Invalid email format',
+            successMessage: null,
+        });
+    }
 
-        // Check if the email or username already exists in the database
-        db.query(
-            'SELECT * FROM users WHERE email = ? OR username = ?',
-            [email, username],
-            async (error, results) => {
-                if (error) return res.status(500).send('Database error');
-                if (results.length > 0) {
-                    return res.status(400).send('Email or username already in use');
-                }
+    // Check if the email or username already exists in the database
+    db.query(
+        'SELECT * FROM users WHERE email = ? OR username = ?',
+        [email, username],
+        async (error, results) => {
+            if (error) {
+                console.error('Database error:', error);
+                return res.status(500).send('Database error');
+            }
 
-                // Generate a hashed password
-                const hashedPassword = await bcrypt.hash(password, 10);
-
-                // Generate a random OTP (6 digits)
-                const otp = crypto.randomInt(100000, 999999);
-
-                // Save the pending user in temporary storage (pendingRegistrations)
-                pendingRegistrations[email] = {
-                    username,
-                    hashedPassword,
-                    profilePicture,
-                    otp,
-                    createdAt: Date.now()
-                };
-
-                // Send the OTP via email using the pre-defined transporter
-                const mailOptions = {
-                    from: process.env.EMAIL_USER,  // Use environment variable for email user
-                    to: email,
-                    subject: 'Your OTP for Registration',
-                    html: `<p>Hello <strong>${username}</strong>,</p>
-        <p>Thank you for registering with our <strong>Zync</strong>. Your One-Time Password (OTP) is:</p>
-        <h2 style="color: #007bff;">${otp}</h2>
-        <p>This OTP is valid for <strong>10 minutes</strong>. Please enter it on the verification page to complete your registration.</p>
-        <p>If you did not request this, please ignore this email.</p>
-        <br>
-        <p>Best regards,</p>
-        <p><strong>The Zync Team</strong></p>`
-                };
-
-                transporter.sendMail(mailOptions, (error, info) => {
-                    if (error) {
-                        console.error('Error sending OTP:', error);
-                        return res.status(500).send('Failed to send OTP');
-                    }
-                    res.redirect(`/verify-otp?email=${email}`);
-                
+            if (results.length > 0) {
+                return res.render('register', {
+                    errorMessage: 'Email or username already in use',
+                    successMessage: null,
                 });
             }
-        );
-    });
+
+            // Handle file upload or set a default profile picture
+            let profilePictureUrl = 'https://storage.googleapis.com/xynq-storage-bucket/default-profile.png'; // Default profile picture URL
+
+            if (req.file) {
+                // Check if the uploaded file is an image
+                const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
+                if (!allowedMimeTypes.includes(req.file.mimetype)) {
+                    return res.render('register', {
+                        errorMessage: 'Invalid file type. Please upload an image.',
+                        successMessage: null,
+                    });
+                }
+            
+                try {
+                    const localPath = path.join(__dirname, 'uploads', req.file.filename);
+                    const gcsFileName = `profile-pictures/${Date.now()}-${req.file.filename}`;
+                    
+                    // Upload the image to Google Cloud Storage
+                    await gcsStorage.bucket(bucketName).upload(localPath, {
+                        destination: gcsFileName,
+                    });
+            
+                    // Generate the URL for the uploaded file
+                    profilePictureUrl = `https://storage.googleapis.com/${bucketName}/${gcsFileName}`;
+                    
+                    // Remove local file after upload
+                    fs.unlinkSync(localPath);
+                } catch (error) {
+                    console.error('Error uploading file to Google Cloud Storage:', error);
+                    return res.render('register', {
+                        errorMessage: 'Failed to upload profile picture. Please try again.',
+                        successMessage: null,
+                    });
+                }
+            }
+            // Hash the password
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            // Generate OTP and save registration details temporarily
+            const otp = Math.floor(100000 + Math.random() * 900000); // 6-digit OTP
+            const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+            pendingRegistrations[email] = {
+                username,
+                hashedPassword,
+                profilePicture: profilePictureUrl,
+                otpHash,
+                createdAt: Date.now(),
+            };
+
+            console.log('Pending registration data:', pendingRegistrations[email]);
+
+            // Send OTP via email (example implementation)
+            const mailOptions = {
+                from: process.env.EMAIL_USER,  // Use environment variable for email user
+                to: email,
+                subject: 'Your OTP for Registration',
+                html: `<p>Hello <strong>${username}</strong>,</p>
+                       <p>Thank you for registering with our <strong>Zync</strong>. Your One-Time Password (OTP) is:</p>
+                       <h2 style="color: #007bff;">${otp}</h2>
+                       <p>This OTP is valid for <strong>10 minutes</strong>. Please enter it on the verification page to complete your registration.</p>
+                       <p>If you did not request this, please ignore this email.</p>
+                       <br>
+                       <p>Best regards,</p>
+                       <p><strong>The Zync Team</strong></p>`
+            };
+
+            transporter.sendMail(mailOptions, (error, info) => {
+                if (error) {
+                    console.error('Error sending OTP:', error);
+                    return res.status(500).send('Failed to send OTP');
+                }
+                res.redirect(`/verify-otp?email=${email}`);
+            });
+        }
+    );
+});
+
+
 
 
 

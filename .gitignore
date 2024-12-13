@@ -4,6 +4,10 @@ node_modules/
 # Environment variables
 EmailCreds.env
 
+# Key File 
+
+Key.json
+
 # Logs
 *.log
 npm-debug.log*
