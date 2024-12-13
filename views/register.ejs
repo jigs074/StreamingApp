@@ -2,7 +2,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Linkup - Register</title>
+    <title>Xynq - Register</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <style>
@@ -185,7 +185,7 @@
     <!-- Main Container -->
     <div class="container">
         <!-- Website Title -->
-        <h1 class="website-title">Linkup</h1>
+        <h1 class="website-title">Xynq</h1>
 
         <!-- Register Form -->
         <div class="login-box">
@@ -202,6 +202,9 @@
 
                 <label for="confirm-password">Confirm Password</label>
                 <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
+
+                <label for="profilePicture">Profile Picture</label>
+               <input type="file" id="profilePicture" name="profilePicture" accept="image/*">
 
                 <button type="submit">Register</button>
             </form>
@@ -228,7 +231,7 @@
                 <p>Bridge distances with seamless global access.</p>
             </div>
         </div>
-
+      
         <!-- Social Media Links -->
         <div class="social-media">
             <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
@@ -248,3 +251,15 @@
     </div>
 </body>
 </html>
+<script>
+    const form = document.querySelector('form');
+    const password = document.getElementById('password');
+    const confirmPassword = document.getElementById('confirm-password');
+
+    form.addEventListener('submit', (e) => {
+        if (password.value !== confirmPassword.value) {
+            e.preventDefault();
+            alert('Passwords do not match');
+        }
+    });
+</script>
