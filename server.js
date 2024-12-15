@@ -14,6 +14,7 @@ const fs = require('fs');
 const multer = require('multer');
 const nodemailer = require('nodemailer');
 const crypto = require('crypto');
+const InterviewRoutes = require('./InterviewRoutes'); 
 const profileRoutes = require('./profileRoutes');
 const friendsRoute = require('./friendsRoute'); 
 console.log('Setting view engine to ejs...');
@@ -79,6 +80,8 @@ const bucketName = 'xynq-storage-bucket';
 //         throw new Error('Email delivery failed');
 //     }
 // };
+
+app.use(InterviewRoutes); 
 app.use(profileRoutes);  
 app.use(friendsRoute); 
 app.post('/forgot-password', (req, res) => {
@@ -183,8 +186,8 @@ app.post('/verify-otp', (req, res) => {
 
         // OTP is correct: finalize the registration
         db.query(
-            'INSERT INTO users (username, email, password, profilePicture) VALUES (?, ?, ?, ?)',
-            [userData.username, email, userData.hashedPassword, userData.profilePicture],
+            'INSERT INTO users (username, email, password, profilePicture, tag) VALUES (?, ?, ?, ?, ?)',
+            [userData.username, email, userData.hashedPassword, userData.profilePicture, userData.tag],
             (err) => {
                 if (err) {
                     console.error('Database error:', err);
@@ -246,7 +249,7 @@ app.get('/register', (req, res) => {
 
 
 app.post('/register', upload.single('profilePicture'), async (req, res) => {
-    const { username, email, password } = req.body;
+    const { username, email, password, tag } = req.body;
 
     // Validate input fields
     if (!username || !email || !password) {
@@ -264,7 +267,12 @@ app.post('/register', upload.single('profilePicture'), async (req, res) => {
             successMessage: null,
         });
     }
-
+   // Validate the Tag for user 
+    if (tag !== 'candidate' && tag !== 'interviewer') {
+        return res.render('register', {
+            errorMessage: 'Invalid user type. Please select Candidate or Interviewer.',
+        });
+    }
     // Check if the email or username already exists in the database
     db.query(
         'SELECT * FROM users WHERE email = ? OR username = ?',
@@ -328,6 +336,7 @@ app.post('/register', upload.single('profilePicture'), async (req, res) => {
                 hashedPassword,
                 profilePicture: profilePictureUrl,
                 otpHash,
+                tag,
                 createdAt: Date.now(),
             };
 

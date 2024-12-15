@@ -68,13 +68,24 @@
             font-size: 14px;
         }
 
-        .login-box input {
+        .login-box input,
+        .login-box select {
             padding: 10px;
             margin-bottom: 20px;
             border: none;
             border-radius: 5px;
             background: #2c2c2c;
             color: #fff;
+        }
+
+        .login-box select {
+            appearance: none;
+            cursor: pointer;
+            font-size: 14px;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 10px center;
+            background-size: 12px 12px;
         }
 
         .login-box button {
@@ -103,82 +114,6 @@
             color: #00D1FF;
             text-decoration: none;
         }
-
-        /* Features Section */
-        .features {
-            display: flex;
-            justify-content: center;
-            gap: 30px;
-            margin-top: 50px;
-            color: #fff;
-        }
-
-        .feature {
-            text-align: center;
-            max-width: 200px;
-        }
-
-        .feature i {
-            font-size: 40px;
-            color: #00D1FF;
-            margin-bottom: 10px;
-        }
-
-        .feature h4 {
-            font-size: 18px;
-            margin-bottom: 8px;
-        }
-
-        .feature p {
-            font-size: 14px;
-            color: #ccc;
-        }
-
-        /* Social Media */
-        .social-media {
-            position: absolute;
-            bottom: 30px;
-            left: 30px;
-            display: flex;
-            gap: 15px;
-        }
-
-        .social-media a {
-            text-decoration: none;
-            color: #fff;
-            font-size: 20px;
-            transition: transform 0.2s ease, color 0.2s ease;
-        }
-
-        .social-media a:hover {
-            transform: scale(1.2);
-            color: #00D1FF;
-        }
-
-        /* Footer */
-        .footer {
-            position: absolute;
-            bottom: 10px;
-            width: 100%;
-            text-align: center;
-            color: #777;
-            font-size: 14px;
-        }
-
-        .footer-links {
-            margin-top: 5px;
-        }
-
-        .footer-links a {
-            margin: 0 10px;
-            text-decoration: none;
-            color: #aaa;
-            transition: color 0.2s ease;
-        }
-
-        .footer-links a:hover {
-            color: #fff;
-        }
     </style>
 </head>
 <body>
@@ -190,7 +125,7 @@
         <!-- Register Form -->
         <div class="login-box">
             <h2>Register</h2>
-            <form action="/register" method="post" enctype = "multipart/form-data">
+            <form action="/register" method="post" enctype="multipart/form-data">
                 <label for="username">Username</label>
                 <input type="text" id="username" name="username" placeholder="Enter your username" required>
 
@@ -203,8 +138,15 @@
                 <label for="confirm-password">Confirm Password</label>
                 <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
 
+                <label for="tag">Role</label>
+                <select id="tag" name="tag" required>
+                    <option value="" disabled selected>Select your role</option>
+                    <option value="candidate">Candidate</option>
+                    <option value="interviewer">Interviewer</option>
+                </select>
+
                 <label for="profilePicture">Profile Picture</label>
-               <input type="file" id="profilePicture" name="profilePicture" accept="image/*"  required>
+                <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required>
 
                 <button type="submit">Register</button>
             </form>
@@ -212,42 +154,6 @@
                 <p>Already have an account? <a href="/login">Login</a></p>
             </div>
         </div>
-
-        <!-- Features and Benefits -->
-        <div class="features">
-            <div class="feature">
-                <i class="fas fa-lock"></i>
-                <h4>Secure & Private</h4>
-                <p>We prioritize your data's security and privacy.</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-bolt"></i>
-                <h4>Fast & Reliable</h4>
-                <p>Experience lightning-fast connections anywhere.</p>
-            </div>
-            <div class="feature">
-                <i class="fas fa-globe"></i>
-                <h4>Connect Globally</h4>
-                <p>Bridge distances with seamless global access.</p>
-            </div>
-        </div>
-      
-        <!-- Social Media Links -->
-        <div class="social-media">
-            <a href="https://facebook.com" target="_blank"><i class="fab fa-facebook"></i></a>
-            <a href="https://twitter.com" target="_blank"><i class="fab fa-twitter"></i></a>
-            <a href="https://instagram.com" target="_blank"><i class="fab fa-instagram"></i></a>
-        </div>
-
-        <!-- Footer Section -->
-        <footer class="footer">
-            <p>&copy; 2024 Linkup. All rights reserved.</p>
-            <div class="footer-links">
-                <a href="#">About Us</a>
-                <a href="#">Privacy Policy</a>
-                <a href="#">Help Center</a>
-            </div>
-        </footer>
     </div>
 </body>
 </html>
