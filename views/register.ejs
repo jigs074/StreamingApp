@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -15,157 +16,266 @@
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #0d0d0d;
+            background: linear-gradient(120deg, #0d0d0d, #1a1a1a);
             color: #fff;
             display: flex;
             justify-content: center;
             align-items: center;
             min-height: 100vh;
-            position: relative;
         }
 
-        /* Main Container */
-        .container {
-            text-align: center;
+        .main {
             width: 100%;
-            padding: 20px;
-        }
-
-        /* Website Title */
-        .website-title {
-            font-size: 3rem;
-            font-weight: bold;
-            color: #f3567d;
-            margin-bottom: 30px;
-            text-shadow: 0 5px 15px rgba(243, 86, 125, 0.8);
-        }
-
-        /* Login/Register Box */
-        .login-box {
+            max-width: 800px;
             background: #1c1c1c;
-            padding: 30px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            display: inline-block;
-            width: 100%;
-            max-width: 400px;
-            text-align: left;
+            padding: 40px;
+            border-radius: 15px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
         }
 
-        .login-box h2 {
+        h1 {
             text-align: center;
-            margin-bottom: 20px;
+            background: linear-gradient(90deg, #f3567d, #ff8c66);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-size: 2.5rem;
+            margin-bottom: 30px;
         }
 
-        .login-box form {
+        .signup-form {
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .form-title {
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 20px;
+            color: #00d1ff;
+        }
+
+        .form-radio {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 15px 0;
+        }
+
+        .form-radio input {
+            display: none;
+        }
+
+        .form-radio label {
+            padding: 12px 25px;
+            border: 2px solid #007BFF;
+            border-radius: 50px;
+            background: #1c1c1c;
+            color: #007BFF;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+
+        .form-radio input:checked + label {
+            background: linear-gradient(90deg, #007BFF, #00D1FF);
+            color: #fff;
+        }
+
+        .form-textbox{
             display: flex;
             flex-direction: column;
         }
 
-        .login-box label {
-            margin-bottom: 5px;
-            font-weight: bold;
+        .form-name-group {
+    display: flex;
+    gap: 20px;
+}
+
+.form-name-group .form-textbox {
+    flex: 1;
+}
+
+.form-textbox input {
+    padding: 10px;
+    border: none;
+    border-radius: 5px;
+    background: #2c2c2c;
+    color: #fff;
+    font-size: 14px;
+}
+
+.form-textbox label {
+    margin-bottom: 5px;
+    font-size: 14px;
+}
+
+        label {
+            margin-bottom: 8px;
             font-size: 14px;
+            color: #ccc;
         }
 
-        .login-box input,
-        .login-box select {
-            padding: 10px;
-            margin-bottom: 20px;
+        input,
+        select {
+            padding: 12px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             background: #2c2c2c;
             color: #fff;
+            font-size: 15px;
+            transition: 0.3s;
         }
 
-        .login-box select {
-            appearance: none;
-            cursor: pointer;
-            font-size: 14px;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23ffffff'%3E%3Cpath d='M7 10l5 5 5-5z'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 10px center;
-            background-size: 12px 12px;
+        input:focus,
+        select:focus {
+            outline: none;
+            background: #3a3a3a;
+            box-shadow: 0 0 10px rgba(0, 123, 255, 0.8);
         }
 
-        .login-box button {
+        .submit {
             background: linear-gradient(90deg, #007BFF, #00D1FF);
             color: #fff;
-            padding: 10px;
+            padding: 12px;
             border: none;
-            border-radius: 5px;
-            font-size: 16px;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: 700;
             cursor: pointer;
             transition: 0.3s;
         }
 
-        .login-box button:hover {
-            background: linear-gradient(90deg, #0056b3, #00a2d1);
+        .submit:hover {
+            background: linear-gradient(90deg, #0056b3, #009fcf);
+            transform: translateY(-3px);
+            box-shadow: 0 10px 20px rgba(0, 123, 255, 0.6);
         }
 
-        .login-box p {
+        .loginhere {
             text-align: center;
-            margin-top: 10px;
-            color: #aaa;
+            margin-top: 20px;
             font-size: 14px;
         }
 
-        .login-box a {
+        .loginhere-link {
+            color: #00D1FF;
+            font-weight: 700;
+            text-decoration: none;
+            transition: color 0.3s;
+        }
+
+        .loginhere-link:hover {
+            color: #007BFF;
+        }
+
+        .dynamic-fields {
+            display: none;
+        }
+
+        .dynamic-fields.visible {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .term-service {
             color: #00D1FF;
             text-decoration: none;
+            font-weight: 700;
+            transition: color 0.3s;
+        }
+
+        .term-service:hover {
+            color: #007BFF;
         }
     </style>
 </head>
 <body>
-    <!-- Main Container -->
-    <div class="container">
-        <!-- Website Title -->
-        <h1 class="website-title">Xynq</h1>
+    <div class="main">
+        <h1>Sign up</h1>
+        <form method="POST" class="signup-form">
+            <h2 class="form-title">What type of user are you?</h2>
+            <div class="form-radio">
+                <input type="radio" name="user_type" value="candidate" id="candidate" checked>
+                <label for="candidate">Candidate</label>
 
-        <!-- Register Form -->
-        <div class="login-box">
-            <h2>Register</h2>
-            <form action="/register" method="post" enctype="multipart/form-data">
-                <label for="username">Username</label>
-                <input type="text" id="username" name="username" placeholder="Enter your username" required>
+                <input type="radio" name="user_type" value="interviewer" id="interviewer">
+                <label for="interviewer">Interviewer</label>
+            </div>
+           <div class = "form-name-group">
+            <div class="form-textbox">
+                <label for="first-name">First Name</label>
+                <input type="text" id="first-name" name="first-name" placeholder="Enter your first name" required>
+            </div>
 
+            <div class="form-textbox">
+                <label for="last-name">Last Name</label>
+                <input type="text" id="last-name" name="last-name" placeholder="Enter your last name" required>
+            </div>
+            </div>
+
+            <div class="form-textbox">
                 <label for="email">Email</label>
                 <input type="email" id="email" name="email" placeholder="Enter your email" required>
+            </div>
 
+            <div class="form-textbox">
                 <label for="password">Password</label>
                 <input type="password" id="password" name="password" placeholder="Enter your password" required>
+            </div>
 
+            <div class="form-textbox">
                 <label for="confirm-password">Confirm Password</label>
                 <input type="password" id="confirm-password" name="confirm-password" placeholder="Confirm your password" required>
-
-                <label for="tag">Role</label>
-                <select id="tag" name="tag" required>
-                    <option value="" disabled selected>Select your role</option>
-                    <option value="candidate">Candidate</option>
-                    <option value="interviewer">Interviewer</option>
-                </select>
-
-                <label for="profilePicture">Profile Picture</label>
-                <input type="file" id="profilePicture" name="profilePicture" accept="image/*" required>
-
-                <button type="submit">Register</button>
-            </form>
-            <div class="login-link">
-                <p>Already have an account? <a href="/login">Login</a></p>
             </div>
-        </div>
+
+            <div class="dynamic-fields" id="interviewer-fields">
+                <div class="form-textbox">
+                    <label for="company">Company</label>
+                    <select id="company" name="company">
+                        <option value="" disabled selected>Select your company</option>
+                        <option value="company1">Company 1</option>
+                        <option value="company2">Company 2</option>
+                        <option value="company3">Company 3</option>
+                    </select>
+                </div>
+
+                <div class="form-textbox">
+                    <a href="/register-company" class="term-service">Register your company now if not registered</a>
+                </div>
+            </div>
+
+            <!-- <div class="form-group">
+                <input type="checkbox" name="agree-term" id="agree-term" required>
+                <label for="agree-term" class="label-agree-term">
+                    I agree to all statements in the <a href="#" class="term-service">Terms of service</a>
+                </label>
+            </div> -->
+
+            <div class="form-textbox">
+                <input type="submit" name="submit" id="submit" class="submit" value="Create account">
+            </div>
+        </form>
+
+        <p class="loginhere">
+            Already have an account? <a href="/login" class="loginhere-link">Log in</a>
+        </p>
     </div>
+
+    <script>
+        const userTypeRadios = document.querySelectorAll('input[name="user_type"]');
+        const interviewerFields = document.getElementById('interviewer-fields');
+
+        userTypeRadios.forEach(radio => {
+            radio.addEventListener('change', () => {
+                if (radio.value === 'interviewer') {
+                    interviewerFields.classList.add('visible');
+                } else {
+                    interviewerFields.classList.remove('visible');
+                }
+            });
+        });
+    </script>
 </body>
 </html>
-<script>
-    const form = document.querySelector('form');
-    const password = document.getElementById('password');
-    const confirmPassword = document.getElementById('confirm-password');
-
-    form.addEventListener('submit', (e) => {
-        if (password.value !== confirmPassword.value) {
-            e.preventDefault();
-            alert('Passwords do not match');
-        }
-    });
-</script>
