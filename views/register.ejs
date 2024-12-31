@@ -4,8 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Xynq - Register</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
+    <!-- <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet"> -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
+
     <style>
         /* General Reset */
         * {
@@ -82,33 +86,33 @@
             color: #fff;
         }
 
-        .form-textbox{
+        .form-textbox {
             display: flex;
             flex-direction: column;
         }
 
         .form-name-group {
-    display: flex;
-    gap: 20px;
-}
+            display: flex;
+            gap: 20px;
+        }
 
-.form-name-group .form-textbox {
-    flex: 1;
-}
+        .form-name-group .form-textbox {
+            flex: 1;
+        }
 
-.form-textbox input {
-    padding: 10px;
-    border: none;
-    border-radius: 5px;
-    background: #2c2c2c;
-    color: #fff;
-    font-size: 14px;
-}
+        .form-textbox input {
+            padding: 10px;
+            border: none;
+            border-radius: 5px;
+            background: #2c2c2c;
+            color: #fff;
+            font-size: 14px;
+        }
 
-.form-textbox label {
-    margin-bottom: 5px;
-    font-size: 14px;
-}
+        .form-textbox label {
+            margin-bottom: 5px;
+            font-size: 14px;
+        }
 
         label {
             margin-bottom: 8px;
@@ -193,26 +197,27 @@
 </head>
 <body>
     <div class="main">
-        <h1>Sign up</h1>
-        <form method="POST" class="signup-form">
+        <h1>Xynq - Sign up</h1>
+        <form id="signup-form" class="signup-form" action="/register/candidate" method="POST">
             <h2 class="form-title">What type of user are you?</h2>
             <div class="form-radio">
-                <input type="radio" name="user_type" value="candidate" id="candidate" checked>
+                <input type="radio" name="tag" value="candidate" id="candidate" checked>
                 <label for="candidate">Candidate</label>
 
-                <input type="radio" name="user_type" value="interviewer" id="interviewer">
+                <input type="radio" name="tag" value="interviewer" id="interviewer">
                 <label for="interviewer">Interviewer</label>
             </div>
-           <div class = "form-name-group">
-            <div class="form-textbox">
-                <label for="first-name">First Name</label>
-                <input type="text" id="first-name" name="first-name" placeholder="Enter your first name" required>
-            </div>
 
-            <div class="form-textbox">
-                <label for="last-name">Last Name</label>
-                <input type="text" id="last-name" name="last-name" placeholder="Enter your last name" required>
-            </div>
+            <div class="form-name-group">
+                <div class="form-textbox">
+                    <label for="firstName">First Name</label>
+                    <input type="text" id="first-name" name="firstName" placeholder="Enter your first name" required>
+                </div>
+
+                <div class="form-textbox">
+                    <label for="lastName">Last Name</label>
+                    <input type="text" id="lastName" name="lastName" placeholder="Enter your last name" required>
+                </div>
             </div>
 
             <div class="form-textbox">
@@ -233,28 +238,18 @@
             <div class="dynamic-fields" id="interviewer-fields">
                 <div class="form-textbox">
                     <label for="company">Company</label>
-                    <select id="company" name="company">
+                    <select id="company" name="company" style="color: black;">
                         <option value="" disabled selected>Select your company</option>
-                        <option value="company1">Company 1</option>
-                        <option value="company2">Company 2</option>
-                        <option value="company3">Company 3</option>
                     </select>
                 </div>
 
                 <div class="form-textbox">
-                    <a href="/register-company" class="term-service">Register your company now if not registered</a>
+                    <a href="/register-company" class="term-service">Register your company if not registered</a>
                 </div>
             </div>
 
-            <!-- <div class="form-group">
-                <input type="checkbox" name="agree-term" id="agree-term" required>
-                <label for="agree-term" class="label-agree-term">
-                    I agree to all statements in the <a href="#" class="term-service">Terms of service</a>
-                </label>
-            </div> -->
-
             <div class="form-textbox">
-                <input type="submit" name="submit" id="submit" class="submit" value="Create account">
+                <input type="submit" class="submit" value="Create account">
             </div>
         </form>
 
@@ -262,20 +257,54 @@
             Already have an account? <a href="/login" class="loginhere-link">Log in</a>
         </p>
     </div>
+  <script>
+    const userTypeRadios = document.querySelectorAll('input[name="tag"]');
+const interviewerFields = document.getElementById('interviewer-fields');
+const companyField = document.getElementById('company');
+const signupForm = document.getElementById('signup-form');
 
-    <script>
-        const userTypeRadios = document.querySelectorAll('input[name="user_type"]');
-        const interviewerFields = document.getElementById('interviewer-fields');
+userTypeRadios.forEach((radio) => {
+    radio.addEventListener('change', () => {
+        if (radio.value === 'interviewer') {
+            interviewerFields.classList.add('visible');
+            signupForm.action = '/register/interviewer';
+            companyField.setAttribute('required', 'true');
+        } else {
+            interviewerFields.classList.remove('visible');
+            signupForm.action = '/register/candidate';
+            companyField.removeAttribute('required'); // Remove required for candidate
+        }
+    });
+});
 
-        userTypeRadios.forEach(radio => {
-            radio.addEventListener('change', () => {
-                if (radio.value === 'interviewer') {
-                    interviewerFields.classList.add('visible');
-                } else {
-                    interviewerFields.classList.remove('visible');
-                }
+const populateCompaniesDropdown = async () => {
+        try {
+            const response = await fetch('/companies'); // Call the API to fetch companies
+            if (!response.ok) {
+                throw new Error('Failed to fetch companies');
+            }
+            const data = await response.json();
+            const companiesDropdown = document.getElementById('company');
+
+            // Populate the dropdown with company names
+            data.companies.forEach((company) => {
+                const option = document.createElement('option');
+                option.value = company.name; // Set the value to the company name
+                option.textContent = company.name; // Display the company name
+                companiesDropdown.appendChild(option);
             });
-        });
-    </script>
+            $('#company').select2({
+    placeholder: 'Select your company',
+    allowClear: true
+});
+
+        } catch (error) {
+            console.error('Error:', error);
+        }
+    };
+
+    // Call the function on page load
+    document.addEventListener('DOMContentLoaded', populateCompaniesDropdown);
+</script>
 </body>
 </html>

@@ -120,104 +120,69 @@ app.post('/forgot-password', (req, res) => {
 
 // Verify OTP route
 
-app.post('/verify-otp', (req, res) => {
-    const { email, otp } = req.body;
-
-    // Initialize successMessage to null by default
-    let successMessage = null;
-
-    // Validate input
-    if (!email || !otp) {
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'Email and OTP are required.',
-            successMessage,
-        });
+app.post('/verify-otp', async (req, res) => {
+    const { otp, email } = req.body;
+    
+    // Check if OTP and email were provided
+    if (!otp || !email) {
+        return res.status(400).send({ error: 'OTP and email are required.' });
     }
 
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { // Validate email format
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'Invalid email format.',
-            successMessage,
-        });
+    // Retrieve the registration data from pendingRegistrations
+    const registrationData = pendingRegistrations[email];
+    
+    if (!registrationData) {
+        return res.status(400).send({ error: 'No pending registration found for this email.' });
     }
 
-    if (isNaN(otp)) { // Ensure OTP is numeric
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'OTP must be a numeric value.',
-            successMessage,
-        });
-    }
-
-    // Check OTP in pendingRegistrations
-    const userData = pendingRegistrations[email];
-
-    if (!userData) {
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'Invalid or expired OTP. Please try again.',
-            successMessage,
-        });
-    }
-
-    // Check OTP expiry (assuming a 10-minute validity period)
-    const OTP_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
-    if (Date.now() - userData.createdAt > OTP_EXPIRY_MS) {
-        delete pendingRegistrations[email]; // Clean up expired entry
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'OTP has expired. Please register again.',
-            successMessage,
-        });
-    }
-
+    // Verify OTP validity (check if it matches the hash)
     const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
-
-    // Compare the hashed OTP with the stored OTP hash
-    if (otpHash !== userData.otpHash) {
-        return res.render('verify-otp', {
-            email,
-            errorMessage: 'Incorrect OTP. Please try again.',
-            successMessage: null,
-        });
+    
+    if (otpHash !== registrationData.otpHash) {
+        return res.status(400).send({ error: 'Invalid OTP. Please try again.' });
     }
 
-    // OTP is correct: finalize the registration
-    const insertQuery =
-        userData.tag === 'candidate'
-            ? 'INSERT INTO candidates (email, password, first_name, last_name, profile_picture) VALUES (?, ?, ?, ?, ?)'
-            : 'INSERT INTO interviewers (email, password, company, profile_picture) VALUES (?, ?, ?, ?)';
+    // Check if the OTP is still valid (10 minutes TTL)
+    const otpExpiry = 10 * 60 * 1000;  // 10 minutes in milliseconds
+    if (Date.now() - registrationData.createdAt > otpExpiry) {
+        delete pendingRegistrations[email]; // Remove expired registration
+        return res.status(400).send({ error: 'OTP has expired. Please request a new OTP.' });
+    }
 
-    const queryParams =
-        userData.tag === 'candidate'
-            ? [email, userData.hashedPassword, userData.firstName, userData.lastName, userData.profilePicture]
-            : [email, userData.hashedPassword, userData.company, userData.profilePicture];
+    // After successful OTP validation, register the user
+    const { type, registerationData: userData } = registrationData;
+    const { password, firstName, lastName, company } = userData;
 
-    db.query(insertQuery, queryParams, (err) => {
-        if (err) {
-            console.error('Database error:', err);
-            delete pendingRegistrations[email]; // Clean up sensitive data
-            return res.render('verify-otp', {
-                email,
-                errorMessage: 'An error occurred. Please try again later.',
-                successMessage,
-            });
-        }
+    // Depending on the user type (candidate or interviewer), register them
+    if (type === 'candidate') {
+        const { email, password, firstName, lastName } = userData;
+        
+        // Insert candidate data into the database
+        db.query('INSERT INTO candidates (email, password, first_name, last_name) VALUES (?, ?, ?, ?)', 
+            [email, password, firstName, lastName], (err, results) => {
+            if (err) return res.status(500).send({ error: 'Failed to register candidate.' });
 
-        // Successfully registered
-        delete pendingRegistrations[email]; // Clean up temporary storage
-
-        // Set successMessage and render the view
-        successMessage = 'Registration successful! You can now log in.';
-        res.render('verify-otp', {
-            email,
-            successMessage,
-            errorMessage: null, // Ensure errorMessage is cleared
+            // Successfully registered candidate
+            delete pendingRegistrations[email]; // Remove OTP data after successful registration
+            res.status(200).send({ message: 'Candidate registered successfully.' });
         });
-    });
+    } else if (type === 'interviewer') {
+        const { email, password, firstName, lastName, company } = userData;
+
+        // Insert interviewer data into the database
+        db.query('INSERT INTO interviewers (email, password, first_name, last_name, company) VALUES (?, ?, ?, ?, ?)', 
+            [email, password, firstName, lastName, company], (err, results) => {
+            if (err) return res.status(500).send({ error: 'Failed to register interviewer.' });
+
+            // Successfully registered interviewer
+            delete pendingRegistrations[email]; // Remove OTP data after successful registration
+            res.status(200).send({ message: 'Interviewer registered successfully.' });
+        });
+    } else {
+        return res.status(400).send({ error: 'Invalid registration type.' });
+    }
 });
+
 
 
 
@@ -232,7 +197,6 @@ app.get('/verify-otp', (req, res) => {
         return res.status(400).send('Email is required');
     }
 
-    // Pass the email and optional messages (if any) to the EJS template
     res.render('verify-otp', {
         email,
         errorMessage: null,  // No error by default
@@ -249,166 +213,14 @@ app.get('/register', async (req, res) => {
     res.render('register'); 
 });
 
-app.post('/register', upload.single('profilePicture'), async (req, res) => {
-    const { tag, email, password, firstName, lastName, company, newCompany } = req.body;
-
-    // Validate common fields
-    if (!email || !password || (tag === 'candidate' && (!firstName || !lastName))) {
-        return res.render('register', {
-            errorMessage: 'All required fields must be filled out.',
-            successMessage: null,
-        });
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
-        return res.render('register', {
-            errorMessage: 'Invalid email format.',
-            successMessage: null,
-        });
-    }
-
-    // Check for valid user type
-    if (tag !== 'candidate' && tag !== 'interviewer') {
-        return res.render('register', {
-            errorMessage: 'Invalid user type. Please select Candidate or Interviewer.',
-            successMessage: null,
-        });
-    }
-
-    // Check if email is already registered as either candidate or interviewer
-    const checkDuplicateQuery = `
-         SELECT id, first_name, last_name, email, password, profile_picture, NULL AS company_id, created_at 
-    FROM candidates 
-    WHERE email = ? 
-    UNION 
-    SELECT id, first_name, last_name, email, password, profile_picture, company_id, created_at 
-    FROM interviewers 
-    WHERE email = ?;
-    `;
-    db.query(checkDuplicateQuery, [email, email], async (error, results) => {
-        if (error) {
-            console.error('Database error:', error);
-            return res.status(500).send('Database error');
-        }
-
-        if (results.length > 0) {
-            return res.render('register', {
-                errorMessage: 'This email is already registered as another type of user.',
-                successMessage: null,
-            });
-        }
-
-        // Handle profile picture upload or use default
-        let profilePictureUrl = 'https://storage.googleapis.com/xynq-storage-bucket/default-profile.png';
-
-        if (req.file) {
-            const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/gif'];
-            if (!allowedMimeTypes.includes(req.file.mimetype)) {
-                return res.render('register', {
-                    errorMessage: 'Invalid file type. Please upload an image.',
-                    successMessage: null,
-                });
-            }
-
-            try {
-                const localPath = path.join(__dirname, 'uploads', req.file.filename);
-                const gcsFileName = `profile-pictures/${Date.now()}-${req.file.filename}`;
-
-                // Upload to Google Cloud Storage
-                await gcsStorage.bucket(bucketName).upload(localPath, {
-                    destination: gcsFileName,
-                });
-
-                profilePictureUrl = `https://storage.googleapis.com/${bucketName}/${gcsFileName}`;
-                fs.unlinkSync(localPath);
-            } catch (error) {
-                console.error('Error uploading file to Google Cloud Storage:', error);
-                return res.render('register', {
-                    errorMessage: 'Failed to upload profile picture.',
-                    successMessage: null,
-                });
-            }
-        }
-
-        // Hash the password
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // Generate OTP
-        const otp = Math.floor(100000 + Math.random() * 900000);
-        const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
-        const pendingRegistration = {
-            email,
-            hashedPassword,
-            profilePicture: profilePictureUrl,
-            otpHash,
-            tag,
-            createdAt: Date.now(),
-        };
-
-        if (tag === 'candidate') {
-            pendingRegistration.firstName = firstName;
-            pendingRegistration.lastName = lastName;
-        } else if (tag === 'interviewer') {
-            if (company) {
-                // Check if the company exists in the companies table
-                db.query('SELECT * FROM companies WHERE name = ?', [company], (err, companyResults) => {
-                    if (err) {
-                        console.error('Database error checking company:', err);
-                        return res.render('register', {
-                            errorMessage: 'Error checking company existence.',
-                            successMessage: null,
-                        });
-                    }
-
-                    if (companyResults.length === 0) {
-                        // If company doesn't exist, ask to register it
-                        return res.render('register', {
-                            errorMessage: 'Company does not exist. Please register the company first.',
-                            successMessage: null,
-                        });
-                    }
-
-                    // If company exists, continue with registration
-                    pendingRegistration.company = company;
-
-                    // Send OTP email only if the company exists
-                    sendOtpEmail(otp, email, res);
-                });
-            } else if (newCompany) {
-                // Add new company to `pending_companies` table
-                db.query(
-                    'INSERT INTO pending_companies (name, created_at) VALUES (?, NOW())',
-                    [newCompany],
-                    (err) => {
-                        if (err) {
-                            console.error('Error adding company to pending_companies:', err);
-                            return res.render('register', {
-                                errorMessage: 'Failed to register new company. Try again later.',
-                                successMessage: null,
-                            });
-                        }
-                    }
-                );
-                pendingRegistration.company = newCompany;
-
-                // Send OTP email after adding new company
-                sendOtpEmail(otp, email, res);
-            } else {
-                return res.render('register', {
-                    errorMessage: 'Please select or register a company.',
-                    successMessage: null,
-                });
-            }
-        }
-
-        // Save pending registration data temporarily
-        pendingRegistrations[email] = pendingRegistration;
-    });
-});
-
-function sendOtpEmail(otp, email, res) {
+function sendOtpEmail(otp, email, type, res, registerationData) {
+    const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+    pendingRegistrations[email] = {
+        otpHash,
+        createdAt: Date.now(),
+        type,
+        registerationData
+    };
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
@@ -427,6 +239,72 @@ function sendOtpEmail(otp, email, res) {
         res.redirect(`/verify-otp?email=${email}`);
     });
 }
+
+
+app.post('/register/candidate', async (req, res) => {
+    const { email, password, firstName, lastName } = req.body;
+
+    if (!email || !password || !firstName || !lastName) {
+        return res.status(400).send({ error: 'All required fields must be filled out.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).send({ error: 'Invalid email format.' });
+    }
+
+    // Check if the email is already registered (not yet inserted into the DB)
+    const otp = Math.floor(100000 + Math.random() * 900000);
+    const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Send OTP to email
+    sendOtpEmail(otp, email, 'candidate', res, { email, password : hashedPassword, firstName, lastName });
+    
+    // Send the OTP hash and the email to store for later verification
+    // You can store this in a temporary session or a temporary table
+    // We aren't inserting into the candidate table yet.
+    // res.status(200).send({ message: 'OTP sent to your email for verification.' });
+});
+
+app.post('/register/interviewer', async (req, res) => {
+    const { email, password, firstName, lastName, company } = req.body;
+
+    if (!email || !password || !firstName || !lastName || !company) {
+        return res.status(400).send({ error: 'All required fields must be filled out.' });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).send({ error: 'Invalid email format.' });
+    }
+
+    // Check if the company exists in the database
+    db.query('SELECT * FROM companies WHERE name = ?', [company], async (err, results) => {
+        if (err) return res.status(500).send({ error: 'Error checking company existence.' });
+
+        if (results.length === 0) {
+            return res.status(400).send({ error: 'Company does not exist. Please select a valid company.' });
+        }
+
+        // Generate OTP and send to email
+        const otp = Math.floor(100000 + Math.random() * 900000);
+        const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
+        const hashedPassword = await bcrypt.hash(password, 10);
+        // Send OTP to interviewer's email
+        sendOtpEmail(otp, email, 'interviewer', res, { email, password: hashedPassword, firstName, lastName });
+    });
+});
+
+app.get('/companies', (req, res) => {
+    // Fetch all companies from the database sorted alphabetically
+    db.query('SELECT name FROM companies ORDER BY name ASC', (err, results) => {
+        if (err) {
+            return res.status(500).send({ error: 'Failed to fetch companies.' });
+        }
+        res.status(200).send({ companies: results });
+    });
+});
 
 
 
