@@ -119,69 +119,85 @@ app.post('/forgot-password', (req, res) => {
 });
 
 // Verify OTP route
-
 app.post('/verify-otp', async (req, res) => {
-    const { otp, email } = req.body;
-    
-    // Check if OTP and email were provided
-    if (!otp || !email) {
-        return res.status(400).send({ error: 'OTP and email are required.' });
-    }
+    const { email, otp } = req.body;
 
-    // Retrieve the registration data from pendingRegistrations
-    const registrationData = pendingRegistrations[email];
-    
-    if (!registrationData) {
+    const registration = pendingRegistrations[email];
+    if (!registration) {
         return res.status(400).send({ error: 'No pending registration found for this email.' });
     }
 
-    // Verify OTP validity (check if it matches the hash)
+    // Check if OTP matches the hash
     const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
-    
-    if (otpHash !== registrationData.otpHash) {
-        return res.status(400).send({ error: 'Invalid OTP. Please try again.' });
+    if (otpHash !== registration.otpHash) {
+        return res.status(400).send({ error: 'Invalid OTP.' });
     }
 
-    // Check if the OTP is still valid (10 minutes TTL)
-    const otpExpiry = 10 * 60 * 1000;  // 10 minutes in milliseconds
-    if (Date.now() - registrationData.createdAt > otpExpiry) {
-        delete pendingRegistrations[email]; // Remove expired registration
-        return res.status(400).send({ error: 'OTP has expired. Please request a new OTP.' });
-    }
+    if (registration.type === 'candidate') {
+        // Register candidate
+        const { email, password, firstName, lastName } = registration.registerationData;
 
-    // After successful OTP validation, register the user
-    const { type, registerationData: userData } = registrationData;
-    const { password, firstName, lastName, company } = userData;
+        // Insert candidate into the database
+        db.query(
+            'INSERT INTO candidates (email, password, firstName, lastName) VALUES (?, ?, ?, ?)',
+            [email, password, firstName, lastName],
+            (err) => {
+                if (err) {
+                    if (err.code === 'ER_DUP_ENTRY') {
+                        return res.status(400).send({ error: 'This email is already registered as a candidate.' });
+                    }
+                    console.error('Error registering candidate:', err);
+                    return res.status(500).send({ error: 'Failed to register candidate.' });
+                }
 
-    // Depending on the user type (candidate or interviewer), register them
-    if (type === 'candidate') {
-        const { email, password, firstName, lastName } = userData;
-        
-        // Insert candidate data into the database
-        db.query('INSERT INTO candidates (email, password, first_name, last_name) VALUES (?, ?, ?, ?)', 
-            [email, password, firstName, lastName], (err, results) => {
-            if (err) return res.status(500).send({ error: 'Failed to register candidate.' });
+                // Remove pending registration
+                delete pendingRegistrations[email];
+                res.status(200).send({ message: 'Candidate registered successfully.' });
+            }
+        );
+    } else if (registration.type === 'interviewer') {
+        // Fetch company_id for the provided company name
+        const companyName = registration.registerationData.company;
+        console.log('Interviewer Registration Data:', registration.registerationData);
+        db.query('SELECT id FROM companies WHERE name = ?', [companyName], (err, results) => {
+            if (err) {
+                console.error('Error fetching company_id:', err);
+                return res.status(500).send({ error: 'Failed to fetch company information.' });
+            }
 
-            // Successfully registered candidate
-            delete pendingRegistrations[email]; // Remove OTP data after successful registration
-            res.status(200).send({ message: 'Candidate registered successfully.' });
-        });
-    } else if (type === 'interviewer') {
-        const { email, password, firstName, lastName, company } = userData;
+            if (results.length === 0) {
+                return res.status(400).send({ error: `Company '${companyName}' not found.` });
+            }
 
-        // Insert interviewer data into the database
-        db.query('INSERT INTO interviewers (email, password, first_name, last_name, company) VALUES (?, ?, ?, ?, ?)', 
-            [email, password, firstName, lastName, company], (err, results) => {
-            if (err) return res.status(500).send({ error: 'Failed to register interviewer.' });
+            const companyId = results[0].id;
+            
+            const { email, password, firstName, lastName } = registration.registerationData;
 
-            // Successfully registered interviewer
-            delete pendingRegistrations[email]; // Remove OTP data after successful registration
-            res.status(200).send({ message: 'Interviewer registered successfully.' });
+            // Insert interviewer into the database
+            db.query(
+                'INSERT INTO interviewers (email, password, first_name, last_name, company_id) VALUES (?, ?, ?, ?, ?)',
+                [email, password, firstName, lastName, companyId],
+                (err) => {
+                    if (err) {
+                        if (err.code === 'ER_DUP_ENTRY') {
+                            return res.status(400).send({ error: 'This email is already registered as an interviewer.' });
+                        }
+                        console.error('Error registering interviewer:', err);
+                        return res.status(500).send({ error: 'Failed to register interviewer.' });
+                    }
+       
+                    // Remove pending registration
+                    delete pendingRegistrations[email];
+                    res.status(200).send({ message: 'Interviewer registered successfully.' });
+                }
+            );
         });
     } else {
-        return res.status(400).send({ error: 'Invalid registration type.' });
+        res.status(400).send({ error: 'Invalid registration type.' });
     }
 });
+
+
 
 
 
@@ -224,17 +240,28 @@ function sendOtpEmail(otp, email, type, res, registerationData) {
     const mailOptions = {
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Your OTP for Registration',
-        html: `<p>Hello,</p>
-               <p>Your OTP for completing registration is:</p>
-               <h2>${otp}</h2>
-               <p>This OTP is valid for 10 minutes. If you did not request this, please ignore this email.</p>`,
+        subject: 'Your Verification Code for Xynq is Here!',
+        html: `
+            <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
+                <p>Hello <strong>${registerationData.firstName}</strong>,</p>
+                <p>Welcome to <strong>Xynq</strong>! We're excited to have you on board. To get started, please use the OTP below to verify your email:</p>
+                <h2 style="color: #007bff; text-align: center;">${otp}</h2>
+                <p>This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
+                <p>Cheers,</p>
+                <p><strong>The Xynq Team</strong></p>
+            </div>
+        `,
     };
 
     transporter.sendMail(mailOptions, (error) => {
         if (error) {
-            console.error('Error sending OTP:', error);
-            return res.status(500).send('Failed to send OTP.');
+            if (error.responseCode === 550) {
+                console.error('Invalid email address:', email);
+                return res.status(400).send('Invalid email address. Please provide a valid one.');
+            } else {
+                console.error('Error sending OTP:', error);
+                return res.status(500).send('Unexpected error occurred while sending OTP.');
+            }
         }
         res.redirect(`/verify-otp?email=${email}`);
     });
@@ -292,7 +319,7 @@ app.post('/register/interviewer', async (req, res) => {
         const otpHash = crypto.createHash('sha256').update(otp.toString()).digest('hex');
         const hashedPassword = await bcrypt.hash(password, 10);
         // Send OTP to interviewer's email
-        sendOtpEmail(otp, email, 'interviewer', res, { email, password: hashedPassword, firstName, lastName });
+        sendOtpEmail(otp, email, 'interviewer', res, { email, password: hashedPassword, firstName, lastName,company });
     });
 });
 
@@ -339,26 +366,75 @@ app.post('/enter-room', (req, res) => {
     }
 });
 
-app.post('/login', async (req, res) => {
-    const { username, password } = req.body;
+// app.post('/login', async (req, res) => {
+//     const { username, password } = req.body;
 
-    if (username && password) {
-        db.query('SELECT * FROM users WHERE username = ?', [username], async (error, results) => {
-            if (error) {
-                res.send('Database query error');
-            } else {
-                const user = results[0];
-                if (user && await bcrypt.compare(password, user.password)) {
-                    req.session.loggedin = true;
-                    req.session.username = username;
-                    res.redirect('/');
-                } else {
-                    res.send('Incorrect Username and Password!');
-                }
-            }
-        });
+//     if (username && password) {
+//         db.query('SELECT * FROM users WHERE username = ?', [username], async (error, results) => {
+//             if (error) {
+//                 res.send('Database query error');
+//             } else {
+//                 const user = results[0];
+//                 if (user && await bcrypt.compare(password, user.password)) {
+//                     req.session.loggedin = true;
+//                     req.session.username = username;
+//                     res.redirect('/');
+//                 } else {
+//                     res.send('Incorrect Username and Password!');
+//                 }
+//             }
+//         });
+//     }
+// });
+
+app.post('/login', async (req, res) => {
+    const { email, password, type } = req.body;
+
+    if (!email || !password || !type) {
+        return res.status(400).send({ error: 'Email, password, and user type are required.' });
     }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+        return res.status(400).send({ error: 'Invalid email format.' });
+    }
+
+    let tableName;
+    if (type === 'candidate') {
+        tableName = 'candidates';
+    } else if (type === 'interviewer') {
+        tableName = 'interviewers';
+    } else {
+        return res.status(400).send({ error: 'Invalid user type. Must be "candidate" or "interviewer".' });
+    }
+
+    // Query the appropriate table
+    db.query(`SELECT * FROM ${tableName} WHERE email = ?`, [email], async (err, results) => {
+        if (err) {
+            console.error('Error fetching user data:', err);
+            return res.status(500).send({ error: 'Error fetching user data.' });
+        }
+
+        if (results.length === 0) {
+            return res.status(401).send({ error: 'Invalid email or password.' });
+        }
+
+        const user = results[0];
+
+        // Compare the provided password with the hashed password
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return res.status(401).send({ error: 'Invalid email or password.' });
+        }
+        req.session.loggedin = true;
+        req.session.email = email;
+        req.session.userType = type;
+       return res.redirect('/');
+        
+    });
 });
+
+
 
 app.post('/create-room', (req, res) => {
 
