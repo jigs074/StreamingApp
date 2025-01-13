@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Request an Interview</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Styles remain unchanged */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(120deg, #141e30, #243b55);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: linear-gradient(145deg, #1e1e1e, #292929);
+            padding: 40px 30px;
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            text-align: center;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        .container h1 {
+            font-size: 2.5rem;
+            margin-bottom: 15px;
+            color: #00d4ff;
+        }
+        .container p {
+            font-size: 1.1rem;
+            color: #ccc;
+            margin-bottom: 30px;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        label {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #00d4ff;
+            text-align: left;
+            margin-bottom: 5px;
+        }
+        input, select, textarea, button {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: #2d2d2d;
+            color: #fff;
+            box-shadow: inset 3px 3px 6px rgba(0, 0, 0, 0.4), inset -3px -3px 6px rgba(255, 255, 255, 0.05);
+            transition: all 0.3s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            background: #3a3a3a;
+        }
+        .calendar {
+            display: flex;
+            gap: 15px;
+        }
+        .calendar input {
+            flex: 1;
+        }
+        button {
+            background: linear-gradient(90deg, #007bff, #00d4ff);
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+        button:hover {
+            transform: translateY(-3px);
+            background: linear-gradient(90deg, #0056b3, #007bff);
+        }
+        footer {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #777;
+        }
+        #customMessageSection {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Request an Interview</h1>
+        <p>Fill in the details to schedule an interview with your candidate.</p>
+        <form id="interviewForm" method="POST">
+            <div>
+                <label for="email">Candidate's Email</label>
+                <input type="email" id="email" name="email" placeholder="e.g., candidate@example.com" required>
+            </div>
+            <div>
+                <label for="position">Position</label>
+                <select id="position" name="position" required>
+                    <option value="" disabled selected>Select Position</option>
+                    <option value="Software Engineer">Software Engineer</option>
+                    <option value="Product Manager">Product Manager</option>
+                    <option value="Data Analyst">Data Analyst</option>
+                    <option value="UI/UX Designer">UI/UX Designer</option>
+                </select>
+            </div>
+            <div>
+                <label for="emailOption">Email Option</label>
+                <select id="emailOption" name="emailOption" required onchange="toggleCustomMessage()">
+                    <option value="automated">Send Automated Email</option>
+                    <option value="custom">Send Custom Email</option>
+                </select>
+            </div>
+            <div id="customMessageSection">
+                <label for="customMessage">Custom Message</label>
+                <textarea id="customMessage" name="customMessage" placeholder="Enter custom message" rows="4"></textarea>
+            </div>
+            <div class="calendar">
+                <div>
+                    <label for="date">Interview Date</label>
+                    <input type="date" id="date" name="date" required>
+                </div>
+                <div>
+                    <label for="time">Interview Time</label>
+                    <input type="time" id="time" name="time" required>
+                </div>
+            </div>
+            <button type="submit">Schedule Interview</button>
+        </form>
+    </div>
+    <script>
+        function toggleCustomMessage() {
+            const emailOption = document.getElementById('emailOption').value;
+            const customMessageSection = document.getElementById('customMessageSection');
+            customMessageSection.style.display = emailOption === 'custom' ? 'block' : 'none';
+        }
+
+        document.getElementById('interviewForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const formData = {
+                email: document.getElementById('email').value,
+                position: document.getElementById('position').value,
+                emailOption: document.getElementById('emailOption').value,
+                customMessage: document.getElementById('customMessage').value,
+                date: document.getElementById('date').value,
+                time: document.getElementById('time').value
+            };
+
+            try {
+                const response = await fetch('/request-interview', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(formData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert(result.message || 'Interview scheduled successfully!');
+                } else {
+                    const error = await response.json();
+                    alert(error.message || 'Failed to schedule the interview.');
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>

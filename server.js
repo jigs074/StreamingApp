@@ -24,6 +24,7 @@ console.log('View engine set successfully.');
 const { Storage } = require('@google-cloud/storage'); 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+const jwt = require('jsonwebtoken'); 
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -32,7 +33,7 @@ app.use(session({
     resave: true,
     saveUninitialized: true
 }));
-
+require('dotenv').config();
 require('dotenv').config({ path: './EmailCreds.env' });
 
 const transporter = nodemailer.createTransport({
@@ -139,9 +140,9 @@ app.post('/verify-otp', async (req, res) => {
 
         // Insert candidate into the database
         db.query(
-            'INSERT INTO candidates (email, password, firstName, lastName) VALUES (?, ?, ?, ?)',
+            'INSERT INTO candidates (email, password, first_name, last_name) VALUES (?, ?, ?, ?)',
             [email, password, firstName, lastName],
-            (err) => {
+            (err, result) => {
                 if (err) {
                     if (err.code === 'ER_DUP_ENTRY') {
                         return res.status(400).send({ error: 'This email is already registered as a candidate.' });
@@ -150,13 +151,29 @@ app.post('/verify-otp', async (req, res) => {
                     return res.status(500).send({ error: 'Failed to register candidate.' });
                 }
 
-                // Remove pending registration
-                delete pendingRegistrations[email];
-                res.status(200).send({ message: 'Candidate registered successfully.' });
+                // Candidate registered, now update interviews table with candidate_id
+                const candidateId = result.insertId;
+
+                // Update interviews table
+                db.query(
+                    'UPDATE interviews SET candidate_id = ? WHERE candidate_email = ?',
+                    [candidateId, email],
+                    (err, updateResult) => {
+                        if (err) {
+                            console.error('Error updating interviews table:', err);
+                            return res.status(500).send({ error: 'Failed to update interviews table.' });
+                        }
+
+                        // Remove pending registration
+                        delete pendingRegistrations[email];
+
+                        res.status(200).send({ message: 'Candidate registered and interviews table updated successfully.' });
+                    }
+                );
             }
         );
     } else if (registration.type === 'interviewer') {
-        // Fetch company_id for the provided company name
+        // Interviewer registration logic (same as your original code)
         const companyName = registration.registerationData.company;
         console.log('Interviewer Registration Data:', registration.registerationData);
         db.query('SELECT id FROM companies WHERE name = ?', [companyName], (err, results) => {
@@ -225,6 +242,10 @@ app.get('/login', (req, res) => {
     res.render('login');
 });
 
+
+
+
+
 app.get('/register', async (req, res) => {
     res.render('register'); 
 });
@@ -242,14 +263,23 @@ function sendOtpEmail(otp, email, type, res, registerationData) {
         to: email,
         subject: 'Your Verification Code for Xynq is Here!',
         html: `
-            <div style="font-family: Arial, sans-serif; line-height: 1.5; color: #333;">
-                <p>Hello <strong>${registerationData.firstName}</strong>,</p>
-                <p>Welcome to <strong>Xynq</strong>! We're excited to have you on board. To get started, please use the OTP below to verify your email:</p>
-                <h2 style="color: #007bff; text-align: center;">${otp}</h2>
-                <p>This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.</p>
-                <p>Cheers,</p>
-                <p><strong>The Xynq Team</strong></p>
-            </div>
+          <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 600px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; padding: 20px; background-color: #f9f9f9;">
+    <h1 style="color: #007bff; text-align: center; font-size: 24px;">Your Verification Code for Xynq</h1>
+    <p style="margin: 0 0 16px; font-size: 16px;">
+        Hello <strong>${registerationData.firstName}</strong>,
+    </p>
+    <p style="margin: 0 0 16px; font-size: 16px;">
+        Welcome to <strong>Xynq</strong>! We're excited to have you on board. To get started, please use the OTP below to verify your email:
+    </p>
+    <div style="text-align: center; margin: 20px 0;">
+        <h2 style="color: #007bff; font-size: 36px; margin: 0;">${otp}</h2>
+    </div>
+    <p style="margin: 0 0 16px; font-size: 16px;">
+        This OTP is valid for <strong>10 minutes</strong>. If you did not request this, please ignore this email.
+    </p>
+    <p style="margin: 0 0 16px; font-size: 16px;">Cheers,</p>
+    <p style="margin: 0 0 16px; font-size: 16px;"><strong>The Xynq Team</strong></p>
+</div>
         `,
     };
 
@@ -287,12 +317,13 @@ app.post('/register/candidate', async (req, res) => {
 
     // Send OTP to email
     sendOtpEmail(otp, email, 'candidate', res, { email, password : hashedPassword, firstName, lastName });
-    
     // Send the OTP hash and the email to store for later verification
     // You can store this in a temporary session or a temporary table
     // We aren't inserting into the candidate table yet.
     // res.status(200).send({ message: 'OTP sent to your email for verification.' });
 });
+
+
 
 app.post('/register/interviewer', async (req, res) => {
     const { email, password, firstName, lastName, company } = req.body;
@@ -332,10 +363,6 @@ app.get('/companies', (req, res) => {
         res.status(200).send({ companies: results });
     });
 });
-
-
-
-
 
 
 
@@ -387,6 +414,8 @@ app.post('/enter-room', (req, res) => {
 //     }
 // });
 
+
+
 app.post('/login', async (req, res) => {
     const { email, password, type } = req.body;
 
@@ -426,11 +455,25 @@ app.post('/login', async (req, res) => {
         if (!isPasswordValid) {
             return res.status(401).send({ error: 'Invalid email or password.' });
         }
-        req.session.loggedin = true;
-        req.session.email = email;
-        req.session.userType = type;
-       return res.redirect('/');
-        
+
+
+        const tokenPayload = {
+            id : user.id, 
+            email : user.email, 
+            userType : type 
+        }; 
+
+        const accessToken = jwt.sign (
+            tokenPayload, 
+            process.env.JWT_SECRET, 
+            { expiresIn: process.env.JWT_EXPIRATION }
+            
+        ); 
+        return res.status(200).send({
+            message: 'Login successful!',
+            accessToken,
+            redirectUrl: type === 'candidate' ? '/candidate-dashboard' : '/interviewerDashboard'
+        });        
     });
 });
 

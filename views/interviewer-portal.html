@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Available Positions - Interviewer Portal</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <style>
+        /* General Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(120deg, #1f2a44, #243b55);
+            color: #fff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        /* Header Section */
+        header {
+            text-align: center;
+            margin-bottom: 50px;
+        }
+
+        header h1 {
+            font-size: 2.8rem;
+            color: #00d4ff;
+            margin-bottom: 15px;
+        }
+
+        header p {
+            font-size: 1.2rem;
+            color: #ccc;
+        }
+
+        /* Main Container */
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 30px;
+            justify-items: center;
+            padding: 20px;
+        }
+
+        /* Position Card */
+        .position-card {
+            background: linear-gradient(145deg, #1e1e1e, #292929);
+            border-radius: 15px;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+            padding: 25px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            width: 100%;
+            max-width: 320px;
+            animation: fadeIn 0.8s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .position-card h2 {
+            font-size: 1.8rem;
+            color: #00d4ff;
+            margin-bottom: 12px;
+        }
+
+        .position-card p {
+            font-size: 1rem;
+            color: #ccc;
+            line-height: 1.6;
+        }
+
+        .position-card .requirements {
+            margin-top: 10px;
+        }
+
+        .position-card .requirements span {
+            display: inline-block;
+            background: #00d4ff;
+            color: #000;
+            padding: 5px 10px;
+            border-radius: 5px;
+            margin: 5px 5px 0 0;
+            font-size: 0.9rem;
+        }
+
+        /* Button */
+        .position-card button {
+            background: linear-gradient(90deg, #28a745, #00d4ff);
+            color: #fff;
+            font-weight: bold;
+            border: none;
+            padding: 12px 18px;
+            border-radius: 8px;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0, 123, 255, 0.4);
+            transition: all 0.3s ease;
+        }
+
+        .position-card button:hover {
+            background: linear-gradient(90deg, #218838, #007bff);
+            transform: translateY(-3px);
+        }
+
+        /* Footer */
+        footer {
+            margin-top: 50px;
+            font-size: 0.9rem;
+            color: #777;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Available Positions</h1>
+        <p>Explore the open roles and request interviews for candidates you think are a good fit.</p>
+    </header>
+    <div class="container">
+        <!-- Position Card 1 -->
+        <div class="position-card">
+            <h2>Software Engineer</h2>
+            <p><strong>Department:</strong> Development</p>
+            <p><strong>Location:</strong> Remote</p>
+            <p><strong>Experience Level:</strong> Mid-Senior</p>
+            <p><strong>Description:</strong> Join our team to work on cutting-edge software projects using the latest technologies. Collaborate with a skilled team of developers to create innovative solutions.</p>
+            <div class="requirements">
+                <strong>Requirements:</strong>
+                <span>JavaScript</span>
+                <span>Node.js</span>
+                <span>React</span>
+                <span>MongoDB</span>
+            </div>
+            <button>Request Interview</button>
+        </div>
+
+        <!-- Position Card 2 -->
+        <div class="position-card">
+            <h2>Data Scientist</h2>
+            <p><strong>Department:</strong> Data Science</p>
+            <p><strong>Location:</strong> Hybrid</p>
+            <p><strong>Experience Level:</strong> Senior</p>
+            <p><strong>Description:</strong> Lead our data team to develop advanced models and data-driven solutions. Use machine learning techniques to transform complex data into actionable insights.</p>
+            <div class="requirements">
+                <strong>Requirements:</strong>
+                <span>Python</span>
+                <span>Machine Learning</span>
+                <span>SQL</span>
+                <span>Data Visualization</span>
+            </div>
+            <button>Request Interview</button>
+        </div>
+
+        <!-- Position Card 3 -->
+        <div class="position-card">
+            <h2>UI/UX Designer</h2>
+            <p><strong>Department:</strong> Design</p>
+            <p><strong>Location:</strong> Office-based</p>
+            <p><strong>Experience Level:</strong> Junior</p>
+            <p><strong>Description:</strong> Work with our creative team to design intuitive user interfaces. Focus on creating a seamless user experience for both web and mobile applications.</p>
+            <div class="requirements">
+                <strong>Requirements:</strong>
+                <span>Figma</span>
+                <span>Adobe XD</span>
+                <span>UI/UX Design</span>
+                <span>Wireframing</span>
+            </div>
+            <button>Request Interview</button>
+        </div>
+
+        <!-- Position Card 4 -->
+        <div class="position-card">
+            <h2>Product Manager</h2>
+            <p><strong>Department:</strong> Product</p>
+            <p><strong>Location:</strong> Remote</p>
+            <p><strong>Experience Level:</strong> Senior</p>
+            <p><strong>Description:</strong> Lead product development initiatives from concept to execution. Collaborate closely with engineering, marketing, and design teams to deliver outstanding products.</p>
+            <div class="requirements">
+                <strong>Requirements:</strong>
+                <span>Product Strategy</span>
+                <span>Market Research</span>
+                <span>Agile Methodology</span>
+                <span>Cross-functional Collaboration</span>
+            </div>
+            <button>Request Interview</button>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2025 Xynq. All rights reserved.
+    </footer>
+</body>
+</html>
