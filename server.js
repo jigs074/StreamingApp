@@ -4,6 +4,9 @@ const app = express();
 const server = require('http').Server(app);
 const io = require('socket.io')(server);
 const { v4: uuidv4 } = require('uuid');
+
+const cookieParser = require('cookie-parser'); 
+app.use(cookieParser()); 
 const ejs = require('ejs');
 const bcrypt = require('bcryptjs');
 const session = require('express-session');
@@ -21,10 +24,13 @@ console.log('Setting view engine to ejs...');
 app.set('view engine', 'ejs');
 console.log('View engine set successfully.');
 // const emailExistence = require ('email-existence'); 
-const { Storage } = require('@google-cloud/storage'); 
+const { Storage } = require('@google-cloud/storage');
+
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 const jwt = require('jsonwebtoken'); 
+
+const authenticateToken = require('./authenticateToken'); 
 
 app.use(express.static('public'));
 app.use(bodyParser.json());
@@ -118,7 +124,6 @@ app.post('/forgot-password', (req, res) => {
         }
     });
 });
-
 // Verify OTP route
 app.post('/verify-otp', async (req, res) => {
     const { email, otp } = req.body;
@@ -325,6 +330,8 @@ app.post('/register/candidate', async (req, res) => {
 
 
 
+
+
 app.post('/register/interviewer', async (req, res) => {
     const { email, password, firstName, lastName, company } = req.body;
 
@@ -469,11 +476,17 @@ app.post('/login', async (req, res) => {
             { expiresIn: process.env.JWT_EXPIRATION }
             
         ); 
-        return res.status(200).send({
-            message: 'Login successful!',
-            accessToken,
-            redirectUrl: type === 'candidate' ? '/candidate-dashboard' : '/interviewerDashboard'
-        });        
+        res.cookie('jwtToken', accessToken, {
+            httpOnly: true, // Cannot be accessed via JavaScript
+            secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS in production
+            sameSite: 'Strict', // Prevent CSRF attacks
+            expires: new Date(Date.now() + 3600000), // Set expiration time (e.g., 1 hour)
+        });
+        if (type === 'candidate') {
+            return res.redirect('/candidate-dashboard');
+        } else {
+            return res.redirect('/interviewerDashboard');
+        } 
     });
 });
 
@@ -543,7 +556,9 @@ io.on('connection', socket => {
     });
 });
 
+
 server.listen(5000, () => {
     console.log('Server is running on port 5000');
+}); 
 
-});
+

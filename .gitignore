@@ -3,6 +3,7 @@ node_modules/
 
 # Environment variables
 EmailCreds.env
+.env
 
 # Key File 
 
@@ -21,3 +22,8 @@ build/
 # IDE-specific files
 .vscode/
 *.swp
+
+
+
+
+

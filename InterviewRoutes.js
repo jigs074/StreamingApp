@@ -3,6 +3,7 @@ const express = require("express");
 const nodemailer = require("nodemailer");
 const router = express.Router();
 const db = require("./db"); // Assuming you have a db module for MySQL queries
+const authenticateToken = require('./authenticateToken'); 
 
 require("dotenv").config({ path: "./EmailCreds.env" });
 const transporter = nodemailer.createTransport({
@@ -14,17 +15,22 @@ const transporter = nodemailer.createTransport({
 });
 
 
-router.get('/request-interview', (req, res) => {
+router.get('/request-interview', authenticateToken, (req, res) => {
     res.render('request-interview');
 }); 
 
-
 router.get('/interviewerDashboard', (req, res) => {
-    res.render('interviewerDashboard');
+    const token = req.cookies.jwtToken;  // Retrieve the token from the cookies
+
+    if (!token) {
+        return res.redirect('/login');  // Redirect to login if no token exists
+    }
+
+    res.render('interviewerDashboard', { jwtToken: token });  // Pass the token to the EJS template
 });
 
 // Request Interview Endpoint
-router.post('/request-interview', (req, res) => {
+router.post('/request-interview', authenticateToken, (req, res) => {
     const { interviewerEmail, candidateEmail, position, timeSlots } = req.body;
 
     // Validate timeSlots
@@ -109,5 +115,6 @@ router.post('/request-interview', (req, res) => {
 });
 
 
-module.exports = router;
+module.exports = router;        
 
+        

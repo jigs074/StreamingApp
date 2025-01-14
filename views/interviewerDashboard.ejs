@@ -1,4 +1,10 @@
+<% if (!jwtToken) { %>
+    <script>
+        window.location.href = '/login'; // Redirect to login if no token exists
+    </script>
+<% } %>
 <!DOCTYPE html>
+
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -171,7 +177,7 @@
                 <h3>Request an Interview</h3>
                 <p>Schedule an interview with a candidate by providing the necessary details.</p>
                 <form action="/request-interview" method="GET">
-                    <button type="submit">Request Interview</button>
+                    <button id ="requestInterviewButton">Request Interview</button>
                 </form>
             </div>
         </div>
@@ -181,3 +187,39 @@
     </footer>
 </body>
 </html>
+
+<script> 
+document.getElementById('requestInterviewButton').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent the form from submitting normally
+    const jwtToken = getCookie('jwtToken');
+    
+    if (!jwtToken) {
+        alert("You must be logged in to request an interview.");
+        window.location.href = '/login';
+    } else {
+        fetch('/request-interview', {
+            method: 'GET',
+            headers: {
+                'Authorization': 'Bearer ' + jwtToken
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log(data);
+        })
+        .catch(error => console.error('Error:', error));
+    }
+});
+
+
+    // Function to retrieve JWT token from cookies
+    function getCookie(name) {
+        const value = `; ${document.cookie}`;
+        const parts = value.split(`; ${name}=`);
+        if (parts.length === 2) return parts.pop().split(';').shift();
+        return null;
+    }
+
+
+</script>
+
