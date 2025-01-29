@@ -16,10 +16,18 @@ const transporter = nodemailer.createTransport({
 
 
 router.get('/request-interview', authenticateToken, (req, res) => {
+       
+    const token = req.cookies.jwtToken;  // Retrieve the token from the cookies
+
+    if (!token) {
+        return res.redirect('/login');  // Redirect to login if no token exists
+    }
+   
     res.render('request-interview');
+
 }); 
 
-router.get('/interviewerDashboard', (req, res) => {
+router.get('/interviewerDashboard', authenticateToken,(req, res) => {
     const token = req.cookies.jwtToken;  // Retrieve the token from the cookies
 
     if (!token) {

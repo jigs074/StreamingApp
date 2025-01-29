@@ -190,27 +190,17 @@
 
 <script> 
 document.getElementById('requestInterviewButton').addEventListener('click', function(event) {
-    event.preventDefault(); // Prevent the form from submitting normally
+    event.preventDefault(); // Prevent default behavior
     const jwtToken = getCookie('jwtToken');
-    
+
     if (!jwtToken) {
         alert("You must be logged in to request an interview.");
         window.location.href = '/login';
     } else {
-        fetch('/request-interview', {
-            method: 'GET',
-            headers: {
-                'Authorization': 'Bearer ' + jwtToken
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            console.log(data);
-        })
-        .catch(error => console.error('Error:', error));
+        // Redirect to the page instead of making a fetch request
+        window.location.href = '/request-interview';
     }
 });
-
 
     // Function to retrieve JWT token from cookies
     function getCookie(name) {

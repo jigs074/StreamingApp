@@ -400,28 +400,6 @@ app.post('/enter-room', (req, res) => {
     }
 });
 
-// app.post('/login', async (req, res) => {
-//     const { username, password } = req.body;
-
-//     if (username && password) {
-//         db.query('SELECT * FROM users WHERE username = ?', [username], async (error, results) => {
-//             if (error) {
-//                 res.send('Database query error');
-//             } else {
-//                 const user = results[0];
-//                 if (user && await bcrypt.compare(password, user.password)) {
-//                     req.session.loggedin = true;
-//                     req.session.username = username;
-//                     res.redirect('/');
-//                 } else {
-//                     res.send('Incorrect Username and Password!');
-//                 }
-//             }
-//         });
-//     }
-// });
-
-
 
 app.post('/login', async (req, res) => {
     const { email, password, type } = req.body;
@@ -477,7 +455,7 @@ app.post('/login', async (req, res) => {
             
         ); 
         res.cookie('jwtToken', accessToken, {
-            httpOnly: true, // Cannot be accessed via JavaScript
+            httpOnly: false, // Cannot be accessed via JavaScript
             secure: process.env.NODE_ENV === 'production', // Only send cookie over HTTPS in production
             sameSite: 'Strict', // Prevent CSRF attacks
             expires: new Date(Date.now() + 3600000), // Set expiration time (e.g., 1 hour)
@@ -489,6 +467,8 @@ app.post('/login', async (req, res) => {
         } 
     });
 });
+
+
 
 
 
