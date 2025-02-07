@@ -180,6 +180,13 @@
                     <button id ="requestInterviewButton">Request Interview</button>
                 </form>
             </div>
+            <div class="card" data-icon="&#xf044;">
+                <h3>Start Interview Now</h3>
+                <p>Start Intervieww</p>
+                <form action="/room/<%= roomId %>" method="GET">
+                    <button id ="startInterviewButton">Start Interview</button>
+                </form>
+            </div>
         </div>
     </div>
     <footer>
@@ -201,7 +208,23 @@ document.getElementById('requestInterviewButton').addEventListener('click', func
         window.location.href = '/request-interview';
     }
 });
+ 
+document.getElementById('startInterviewButton').addEventListener('click', function(event) {
+    event.preventDefault(); // Prevent default behavior
+    const jwtToken = getCookie('jwtToken');
 
+    if (!jwtToken) {
+        alert("You must be logged in as an interviewer to start the interview.");
+        window.location.href = '/login';
+    } else {
+        const roomId = "<%= roomId %>"; // Ensure roomId is properly passed from the backend
+        if (roomId) {
+            window.location.href = `/room/${roomId}`;
+        } else {
+            alert("Room ID is missing.");
+        }
+    }
+});
     // Function to retrieve JWT token from cookies
     function getCookie(name) {
         const value = `; ${document.cookie}`;

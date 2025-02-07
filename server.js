@@ -507,14 +507,44 @@ app.get('/', (req, res) => {
 });
 
 
-app.get('/:room', (req, res) => {
-    if (req.session.loggedin) {
-        const username = req.query.username || req.session.username;
-        res.render('room', { roomId: req.params.room, username: username });
-    } else {
-        res.redirect('/login');
+// app.get('/:room', (req, res) => {
+//     if (req.session.loggedin) {
+//         const username = req.query.username || req.session.username;
+//         res.render('room', { roomId: req.params.room, username: username });
+//     } else {
+//         res.redirect('/login');
+//     }
+// });
+
+// app.get('/room/:roomId', authenticateToken, (req, res) => {
+//     const roomId = req.params.roomId;
+    
+//     if (!req.user || !req.user.email) {
+//         return res.status(401).send("Unauthorized: User data missing.");
+//     }
+
+//     res.render('room', { 
+//         roomId, 
+//         email: req.user.email  
+//     });
+// });
+
+app.get('/room/:roomId', authenticateToken, (req, res) => {
+    const roomId = req.params.roomId;
+
+    if (!req.user || !req.user.email) {
+        return res.status(401).send("Unauthorized: User data missing.");
     }
+
+    const jwtToken = req.cookies.jwtToken; // Get token from cookies
+
+    res.render('room', { 
+        roomId, 
+        email: req.user.email, 
+        jwtToken // Pass jwtToken to EJS
+    });
 });
+
 
 
 io.on('connection', socket => {

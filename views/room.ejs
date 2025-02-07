@@ -1,3 +1,9 @@
+<% if (!jwtToken) { %>
+    <script>
+        window.location.href = '/login'; // Redirect to login if no token exists
+    </script>
+<% } %>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -5,12 +11,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Streaming Room</title>
     <script>
-        const ROOM_ID = "<%= roomId %>";
-        const USER_ID = "<%= username %>";
+        const ROOM_ID = "<%= roomId%>";
+        const USER_ID = "<%= email %>";
     </script>
     <script defer src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="/socket.io/socket.io.js" defer></script>
-    <script src="script.js" defer></script>
+    <script src="/script.js" defer></script>
     <style>
         /* Add your styles here */
         * {

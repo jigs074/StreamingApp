@@ -27,15 +27,36 @@ router.get('/request-interview', authenticateToken, (req, res) => {
 
 }); 
 
-router.get('/interviewerDashboard', authenticateToken,(req, res) => {
-    const token = req.cookies.jwtToken;  // Retrieve the token from the cookies
+
+
+
+// router.get('/interviewerDashboard', authenticateToken,(req, res) => {
+//     const token = req.cookies.jwtToken;  // Retrieve the token from the cookies
+
+//     if (!token) {
+//         return res.redirect('/login');  // Redirect to login if no token exists
+//     }
+
+//     res.render('interviewerDashboard', { jwtToken: token });  // Pass the token to the EJS template
+// });
+
+router.get('/interviewerDashboard', authenticateToken, (req, res) => {
+    const token = req.cookies.jwtToken; // Retrieve the token from cookies
 
     if (!token) {
-        return res.redirect('/login');  // Redirect to login if no token exists
+        return res.redirect('/login'); // Redirect to login if no token exists
     }
 
-    res.render('interviewerDashboard', { jwtToken: token });  // Pass the token to the EJS template
+    const roomId = generateRoomId(); // Generate or fetch the room ID
+
+    res.render('interviewerDashboard', { jwtToken: token, roomId }); // Pass roomId to EJS
 });
+
+// Function to generate a random room ID
+function generateRoomId() {
+    return Math.random().toString(36).substr(2, 9); // Example: 'abc123xyz'
+}
+
 
 // Request Interview Endpoint
 router.post('/request-interview', authenticateToken, (req, res) => {
