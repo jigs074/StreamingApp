@@ -109,17 +109,22 @@ router.post('/request-interview', authenticateToken, (req, res) => {
             db.query('INSERT INTO interviews SET ?', interviewData, (err, result) => {
                 if (err) return res.status(500).json({ error: err.message });
 
+
                 // Step 4: Generate email content with time slots
-                let timeSlotList = timeSlots.map(slot => `<li>${new Date(slot).toLocaleString()}</li>`).join('');
+                const selectionLinks = timeSlots.map(slot => {
+                    const encodedSlot = encodeURIComponent(slot); // Encode to pass in URL
+                    return `<li><a href="http://127.0.0.1:5000/select-slot?email=${candidate_email}&time=${encodedSlot}">Choose ${new Date(slot).toLocaleString()}</a></li>`;
+                }).join('');
+                
                 const emailContent = `
                     <h1>Interview Request for ${position}</h1>
                     <p>Dear Candidate,</p>
                     <p>We are excited to inform you that we would like to schedule an interview for the position of <strong>${position}</strong>. Below are the available time slots:</p>
                     <ul>
-                        ${timeSlotList}
+                        ${selectionLinks}
                     </ul>
                     <p>Please select one of the above time slots by replying to this email or following the instructions on your dashboard.</p>
-                    <p>If you are not yet registered, please complete your registration by clicking <a href="https://yourdomain.com/register">here</a>.</p>
+                    <p>If you are not yet registered, please complete your registration by clicking <a href="http://127.0.0.1:5000/register">here</a>.</p>
                     <p>Looking forward to your response.</p>
                     <p>Best regards,</p>
                     <p>Xynq</p>
@@ -142,6 +147,60 @@ router.post('/request-interview', authenticateToken, (req, res) => {
         });
     });
 });
+
+router.get('/select-slot', (req, res) => {
+    const { email, time } = req.query;
+
+    if (!email || !time) {
+        return res.status(400).json({ error: "Invalid request. Missing email or time slot." });
+    }
+
+    // Step 1: Find the pending interview
+    const query = `SELECT id FROM interviews WHERE candidate_email = ? AND status = 'pending'`;
+
+    db.query(query, [email], (err, result) => {
+        if (err) return res.status(500).json({ error: err.message });
+        if (result.length === 0) return res.status(404).json({ error: "No pending interview found." });
+
+        const interviewId = result[0].id;
+        const meetingId = `meeting-${interviewId}-${Date.now()}`; // Unique meeting ID
+
+        // Step 2: Update interview with selected time & meeting ID
+        const updateQuery = `UPDATE interviews SET selected_time = ?, meeting_id = ?, status = 'scheduled' WHERE id = ?`;
+
+        db.query(updateQuery, [time, meetingId, interviewId], (err, updateResult) => {
+            if (err) return res.status(500).json({ error: err.message });
+
+            // Step 3: Send Confirmation Email
+            const inviteLink = `https://yourdomain.com/meet/${meetingId}`;
+            const emailContent = `
+                <h1>Interview Confirmed</h1>
+                <p>Your interview for <strong>${new Date(time).toLocaleString()}</strong> has been confirmed.</p>
+                <p>Join the meeting here: <a href="${inviteLink}">${inviteLink}</a></p>
+                <p>Best regards,</p>
+                <p>Xynq</p>
+            `;
+
+            const mailOptions = {
+                from: process.env.EMAIL_USER,
+                to: email,
+                subject: "Your Interview is Confirmed",
+                html: emailContent
+            };
+
+            transporter.sendMail(mailOptions, (err, info) => {
+                if (err) return res.status(500).json({ error: err.message });
+
+                return res.send(`
+                    <h1>Interview Confirmed</h1>
+                    <p>Your interview has been scheduled for <strong>${new Date(time).toLocaleString()}</strong>.</p>
+                    <p><a href="${inviteLink}">Join the interview</a></p>
+                `);
+            });
+        });
+    });
+});
+
 
 
 module.exports = router;        
