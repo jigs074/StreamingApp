@@ -1,6 +1,7 @@
-<% if (!jwtToken) { %>
+
+<% if (!jwtToken) { %> 
     <script>
-        window.location.href = '/login'; // Redirect to login if no token exists
+        window.location.href = '/login';
     </script>
 <% } %>
 
@@ -9,392 +10,323 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Streaming Room</title>
+    <title>Video Chat Room</title>
     <script>
-        const ROOM_ID = "<%= roomId%>";
+        const ROOM_ID = "<%= roomId %>";
         const USER_ID = "<%= email %>";
     </script>
     <script defer src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
     <script src="/socket.io/socket.io.js" defer></script>
-    <script src="/script.js" defer></script>
     <style>
-        /* Add your styles here */
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Poppins', sans-serif;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
         }
-        .header {
-            width: 100%;
+
+        body {
+            background: #0f172a;
+            color: white;
+        }
+
+        .main-container {
+            padding: 20px;
             height: 100vh;
-            background: #00122e;
-            position: relative;
-        }
-        nav {
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            background: #182842;
-            width: 120px;
-            padding: 10px 0;
-        }
-        nav .logo {
-            width: 56px;
-            display: block;
-            margin: auto;
-            cursor: pointer;
-        }
-        nav ul {
-            margin-top: 160px;
-        }
-        nav ul li {
-            list-style: none;
-        }
-        nav ul li img {
-            width: 50px;
-            display: block;
-            margin: 10px auto;
-            padding: 10px;
-            cursor: pointer;
-            opacity: 0.5;
-            border-radius: 10px;
-            transition: opacity 0.5s, background 0.5s;
-        }
-        nav ul li img:hover {
-            opacity: 1;
-            background: #4d6181;
-        }
-        .active {
-            opacity: 1;
-            background: #4d6181;
-        }
-        .container {
-            margin-left: 120px;
-            padding: 0 2.5%;
-        }
-        .top-icons {
             display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            padding: 25px 0;
+            flex-direction: column;
         }
-        .top-icons img {
-            width: 25px;
-            margin-left: 40px;
-            cursor: pointer;
-        }
-        .row {
-            margin-top: 15px;
-            display: flex;
-            justify-content: space-between;
-        }
-        .col-1 {
-            flex-basis: 65%;
-        }
-        .col-2 {
-            flex-basis: 33%;
-        }
-        .host-img {
-            width: 100%;
-            border-radius: 15px;
-        }
-        .controls {
-            display: flex;
+
+        #video-grid {
+            flex-grow: 1;
+            display: grid;
+            gap: 1rem;
+            padding: 1rem;
             align-items: center;
             justify-content: center;
+            min-height: 0;
+            background: #1e293b;
+            border-radius: 12px;
+            position: relative;
         }
-        .controls img {
-            width: 40px;
-            margin: 20px 10px;
-            cursor: pointer;
-            transition: transform 0.5s;
+
+        /* Grid layouts for different participant counts */
+        #video-grid.participants-1 {
+            grid-template-columns: minmax(0, 1fr);
         }
-        .controls .call-icon {
-            width: 70px;
+
+        #video-grid.participants-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
         }
-        .controls img:hover {
-            transform: translateY(-10px);
+
+        #video-grid.participants-3 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
         }
-        .joined {
-            background: #182842;
-            border-radius: 15px;
-            padding: 30px 40px 50px;
-            color: #fff;
+
+        #video-grid.participants-3 > :first-child {
+            grid-column: 1 / -1;
         }
-        .joined div {
-            margin-top: 20px;
-            display: grid;
-            grid-template-columns: auto auto auto;
-            grid-gap: 20px;
+
+        #video-grid.participants-4 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
         }
-        .joined img {
+
+        #video-grid.participants-5,
+        #video-grid.participants-6 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-rows: repeat(2, minmax(0, 1fr));
+        }
+
+        .video-container {
             width: 100%;
-            border-radius: 10px;
-            cursor: pointer;
+            height: 100%;
+            min-height: 200px;
+            position: relative;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #0f172a;
+            transition: all 0.3s ease;
         }
-        .invite {
-            background: #182842;
-            border-radius: 15px;
-            padding: 30px 40px 50px;
-            color: #fff;
-            margin-top: 20px;
-        }
-        .invite img {
-            margin-top: 20px;
-            width: 50px;
-            margin-left: 5px;
-            border-radius: 50%;
-            cursor: pointer;
-        }
-        #video-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, 300px);
-            grid-auto-rows: 300px;
-            margin-top: 20px;
-        }
+
         video {
             width: 100%;
             height: 100%;
             object-fit: cover;
+            border-radius: 8px;
         }
-        .chat-container {
-            display: none; /* Hide chat container by default */
+
+        .video-container.pinned {
             position: fixed;
-            bottom: 0;
-            right: 0;
-            width: 300px;
-            height: 400px;
-            border: 1px solid #ccc;
-            background-color: white;
-            z-index: 1000;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80vw;
+            height: 80vh;
+            z-index: 100;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
         }
-        .chat-header {
-            background-color: blueviolet;
-            color: white;
-            padding: 10px;
-            text-align: center;
+
+        .video-container.pinned ~ .video-container {
+            position: fixed;
+            right: 20px;
+            width: 200px;
+            height: 150px;
+            z-index: 101;
         }
-        .chat-messages {
-            height: 300px;
-            overflow-y: scroll;
-            padding: 10px;
-        }
-        .chat-input {
+
+        .video-container.pinned ~ .video-container:nth-child(2) { top: 20px; }
+        .video-container.pinned ~ .video-container:nth-child(3) { top: 190px; }
+        .video-container.pinned ~ .video-container:nth-child(4) { top: 360px; }
+        .video-container.pinned ~ .video-container:nth-child(5) { top: 530px; }
+
+        .controls {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
             display: flex;
-            padding: 10px;
+            gap: 20px;
+            background: rgba(15, 23, 42, 0.8);
+            padding: 15px 30px;
+            border-radius: 50px;
+            backdrop-filter: blur(8px);
         }
-        .chat-input input {
-            flex: 1;
-            padding: 10px;
-            margin-right: 10px;
-        }
-        .chat-input button {
-            padding: 10px;
-            background-color: blueviolet;
-            color: white;
+
+        .control-button {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
             border: none;
+            cursor: pointer;
+            background: #334155;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
         }
-        /* Style for screen share button */
-.controls #share-screen {
-    width: 40px;
-    margin: 20px 10px;
-    cursor: pointer;
-    transition: transform 0.5s;
-}
 
-.controls #share-screen:hover {
-    transform: translateY(-10px);
-}
+        .control-button:hover {
+            background: #475569;
+        }
 
-/* Style for screen share video */
-video.screen {
-    border: 2px solid #7289da; /* Visual distinction for shared screen */
-    border-radius: 8px;
-    margin-bottom: 10px;
-}
+        .control-button.active {
+            background: #dc2626;
+        }
 
+        .participant-name {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
-    <div class="header">
-        <nav>
-            <img src="https://i.postimg.cc/Sx0ZGtQJ/logo.png" class="logo">
-            <ul>
-                <li><img src="https://i.postimg.cc/L8zxQBhv/live.png" class="active"></li>
-                <li><img src="https://i.postimg.cc/JnggC78Q/video.png"></li>
-                <li><img src="https://i.postimg.cc/vmb3JgVy/message.png"></li>
-                <li><img src="https://i.postimg.cc/qR7Q7PwZ/notification.png"></li>
-                <li><img src="https://i.postimg.cc/k4DZH604/users.png"></li>
-                <li><img src="https://i.postimg.cc/v84Fqkyz/setting.png"></li>
-            </ul>
-        </nav>
-        <div class="container">
-            <div class="top-icons">
-                <img src="https://i.postimg.cc/cCpcXrSV/search.png">
-                <img src="https://i.postimg.cc/Pqy2TXWw/menu.png">
-            </div>
-            <div class="row">
-                <div class="col-1">
-                    <div id="video-grid"></div>
-                    <div class="controls">
-                        <img src="https://i.postimg.cc/R0cg5D1t/mic.png" id = "toggle-mic">
-                        <img src = "https://i.postimg.cc/4xpdz6bP/video-icon-removebg-preview.png" id = "toggle-video">
-                        <img src="https://i.postimg.cc/fyJH8G00/call.png" id="disconnect-icon">
-                        <img src="https://i.postimg.cc/BQmWRXZ3/chat-icon.png" id="chat-icon">
-                        <img src="https://i.postimg.cc/4NJ0pP5x/screen-share.png" id="share-screen" alt="Share Screen">
-
-                    </div>
-                </div>
-                <div class="col-2">
-                    <div class="joined">
-                        <p>People Joined</p>
-                        <div>
-                            <img src="https://i.postimg.cc/WzFnG0QG/people-1.png">
-                            <img src="https://i.postimg.cc/fRhGbb92/people-2.png">
-                            <img src="https://i.postimg.cc/02mgxSbK/people-3.png">
-                            <img src="https://i.postimg.cc/K8rd3y7Z/people-4.png">
-                            <img src="https://i.postimg.cc/HWFGfzsC/people-5.png">
-                        </div>
-                    </div>
-                    <div class="invite">
-                        <p>Invite More People</p>
-                        <div>
-                            <img src="https://i.postimg.cc/7LHjgQXS/user-1.png">
-                            <img src="https://i.postimg.cc/q71SQXZS/user-2.png">
-                            <img src="https://i.postimg.cc/h4kwCGpD/user-3.png">
-                            <img src="https://i.postimg.cc/GtyfL0hn/user-4.png">
-                            <img src="https://i.postimg.cc/FFd8gSbC/user-5.png">
-                        </div>
-                    </div>
-                </div>
-            </div>
+    <div class="main-container">
+        <div id="video-grid"></div>
+        <div class="controls">
+            <button class="control-button" id="toggle-video">📹</button>
+            <button class="control-button" id="toggle-audio">🎤</button>
+            <button class="control-button" id="share-screen">💻</button>
+            <button class="control-button" id="leave-room" style="background: #dc2626;">❌</button>
         </div>
     </div>
 
-    <div class="chat-container" id="chat-container">
-        <div class="chat-header">
-            <h3>Chat Room</h3>
-            <button id="close-chat-btn">Close</button>
-        </div>
-        <div id="chat-messages"></div>
-        <form id="chat-form">
-            <input type="text" id="chat-input" placeholder="Type your message..." autocomplete="off">
-            <button type="submit">Send</button>
-        </form>
-    </div>
     <script>
-     document.addEventListener('DOMContentLoaded', () => {
-    const socket = io();
-    const chatIcon = document.getElementById('chat-icon');
-    const chatContainer = document.getElementById('chat-container');
-    const closeChatBtn = document.getElementById('close-chat-btn');
-    const chatMessages = document.getElementById('chat-messages');
-    const chatForm = document.getElementById('chat-form');
-    const chatInput = document.getElementById('chat-input');
-    const shareScreenButton = document.getElementById('share-screen');
-    const videoGrid = document.getElementById('video-grid');
-    const myPeer = new Peer(); // Initialize PeerJS
+        document.addEventListener('DOMContentLoaded', () => {
+            const socket = io();
+            const videoGrid = document.getElementById('video-grid');
+            const myPeer = new Peer();
+            
+            const toggleVideoBtn = document.getElementById('toggle-video');
+            const toggleAudioBtn = document.getElementById('toggle-audio');
+            const shareScreenBtn = document.getElementById('share-screen');
+            const leaveRoomBtn = document.getElementById('leave-room');
 
-    socket.emit('join-room', ROOM_ID, USER_ID);
+            let myVideoStream;
+            let myVideoContainer;
+            const peers = {};
+            let videoEnabled = true;
+            let audioEnabled = true;
 
-    chatIcon.addEventListener('click', () => {
-        chatContainer.style.display = 'block';
-        chatIcon.style.display = 'none';
-    });
+            const updateGridLayout = () => {
+                const participantCount = videoGrid.children.length;
+                videoGrid.classList.remove('participants-1', 'participants-2', 'participants-3', 
+                                        'participants-4', 'participants-5', 'participants-6');
+                videoGrid.classList.add(`participants-${participantCount}`);
+            };
 
-    closeChatBtn.addEventListener('click', () => {
-        chatContainer.style.display = 'none';
-        chatIcon.style.display = 'block';
-    });
+            const createVideoElement = (stream, username, isLocal = false) => {
+                const videoContainer = document.createElement('div');
+                videoContainer.className = 'video-container';
 
-    chatForm.addEventListener('submit', (event) => {
-        event.preventDefault();
-        const message = chatInput.value.trim();
-        if (message) {
-            socket.emit('chat-message', { user: USER_ID, message });
-            chatInput.value = '';
-        }
-    });
+                const video = document.createElement('video');
+                video.srcObject = stream;
+                video.classList.add('video');
+                video.autoplay = true;
+                video.playsInline = true;
+                if (isLocal) video.muted = true;
 
-    socket.on('chat-message', (msg) => {
-        const messageElement = document.createElement('div');
-        messageElement.textContent = `${msg.user}: ${msg.message}`;
-        chatMessages.appendChild(messageElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    });
+                const nameTag = document.createElement('div');
+                nameTag.className = 'participant-name';
+                nameTag.textContent = username;
 
-    shareScreenButton.addEventListener('click', async () => {
-        try {
-            const stream = await navigator.mediaDevices.getDisplayMedia({
-                video: {
-                    cursor: "always"
-                },
-                audio: false
+                videoContainer.appendChild(video);
+                videoContainer.appendChild(nameTag);
+
+                // Double click to pin/unpin
+                videoContainer.addEventListener('dblclick', () => {
+                    const isPinned = videoContainer.classList.contains('pinned');
+                    document.querySelectorAll('.video-container.pinned')
+                        .forEach(container => container.classList.remove('pinned'));
+                    
+                    if (!isPinned) {
+                        videoContainer.classList.add('pinned');
+                    } else {
+                        updateGridLayout();
+                    }
+                });
+
+                return videoContainer;
+            };
+
+            navigator.mediaDevices.getUserMedia({
+                video: true,
+                audio: true
+            }).then(stream => {
+                myVideoStream = stream;
+                myVideoContainer = createVideoElement(stream, USER_ID, true);
+                videoGrid.appendChild(myVideoContainer);
+                updateGridLayout();
+
+                myPeer.on('call', call => {
+                    call.answer(stream);
+                    call.on('stream', userVideoStream => {
+                        const existingVideo = document.querySelector(`[data-peer-id="${call.peer}"]`);
+                        if (!existingVideo) {
+                            const videoContainer = createVideoElement(userVideoStream, 'Remote User');
+                            videoContainer.dataset.peerId = call.peer;
+                            videoGrid.appendChild(videoContainer);
+                            updateGridLayout();
+                        }
+                    });
+                });
+
+                socket.on('user-connected', userId => {
+                    connectToNewUser(userId, stream);
+                });
             });
-            handleStream(stream, 'screen');
-        } catch (error) {
-            console.error('Error sharing screen:', error);
-        }
-    });
 
-    const handleStream = (stream, type = 'video') => {
-        const videoElement = document.createElement('video');
-        videoElement.srcObject = stream;
-        videoElement.classList.add(type); // Add type class (e.g., 'screen' or 'video')
-        videoElement.autoplay = true;
-        videoGrid.appendChild(videoElement);
+            const connectToNewUser = (userId, stream) => {
+                const call = myPeer.call(userId, stream);
+                call.on('stream', userVideoStream => {
+                    const videoContainer = createVideoElement(userVideoStream, userId);
+                    videoContainer.dataset.peerId = userId;
+                    videoGrid.appendChild(videoContainer);
+                    updateGridLayout();
+                });
+                peers[userId] = call;
+            };
 
-        stream.getVideoTracks()[0].addEventListener('ended', () => {
-            videoElement.remove(); // Remove video element when screen sharing stops
-        });
+            socket.on('user-disconnected', userId => {
+                if (peers[userId]) {
+                    peers[userId].close();
+                }
+                const videoContainer = document.querySelector(`[data-peer-id="${userId}"]`);
+                if (videoContainer) {
+                    videoContainer.remove();
+                    updateGridLayout();
+                }
+            });
 
-        // PeerJS and Socket.IO integration for stream sharing
-        myPeer.on('call', call => {
-            call.answer(stream);
-            const peerVideo = document.createElement('video');
-            call.on('stream', userVideoStream => {
-                addVideoStream(peerVideo, userVideoStream);
+            myPeer.on('open', id => {
+                socket.emit('join-room', ROOM_ID, id);
+            });
+
+            // Control buttons functionality
+            toggleVideoBtn.addEventListener('click', () => {
+                const videoTrack = myVideoStream.getVideoTracks()[0];
+                videoEnabled = !videoEnabled;
+                videoTrack.enabled = videoEnabled;
+                toggleVideoBtn.classList.toggle('active');
+            });
+
+            toggleAudioBtn.addEventListener('click', () => {
+                const audioTrack = myVideoStream.getAudioTracks()[0];
+                audioEnabled = !audioEnabled;
+                audioTrack.enabled = audioEnabled;
+                toggleAudioBtn.classList.toggle('active');
+            });
+
+            shareScreenBtn.addEventListener('click', async () => {
+                try {
+                    const screenStream = await navigator.mediaDevices.getDisplayMedia({
+                        video: true
+                    });
+                    const videoContainer = createVideoElement(screenStream, 'My Screen');
+                    videoGrid.appendChild(videoContainer);
+                    updateGridLayout();
+
+                    screenStream.getVideoTracks()[0].onended = () => {
+                        videoContainer.remove();
+                        updateGridLayout();
+                    };
+                } catch (error) {
+                    console.error('Error sharing screen:', error);
+                }
+            });
+
+            leaveRoomBtn.addEventListener('click', () => {
+                myVideoStream.getTracks().forEach(track => track.stop());
+                window.location.href = '/';
             });
         });
-
-        socket.on('user-connected', userId => {
-            connectToNewUser(userId, stream);
-        });
-
-        const connectToNewUser = (userId, stream) => {
-            const call = myPeer.call(userId, stream);
-            const video = document.createElement('video');
-            call.on('stream', userVideoStream => {
-                addVideoStream(video, userVideoStream);
-            });
-        };
-
-        const addVideoStream = (video, stream) => {
-            video.srcObject = stream;
-            video.addEventListener('loadedmetadata', () => {
-                video.play();
-            });
-            videoGrid.appendChild(video);
-        };
-    };
-
-    const disconnectIcon = document.getElementById('disconnect-icon');
-    disconnectIcon.addEventListener('click', () => {
-        const videoGrid = document.getElementById('video-grid');
-        videoGrid.querySelectorAll('video').forEach(video => {
-            video.srcObject.getTracks().forEach(track => track.stop());
-        });
-
-        if (myPeer) {
-            myPeer.destroy();
-        }
-
-        window.location.href = '/';
-    });
-});
-
     </script>
 </body>
 </html>
