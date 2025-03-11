@@ -156,14 +156,16 @@ router.get('/select-slot', (req, res) => {
     }
 
     // Step 1: Find the pending interview
-    const query = `SELECT id FROM interviews WHERE candidate_email = ? AND status = 'pending'`;
+    const query = `SELECT id, interviewer_id FROM interviews WHERE candidate_email = ? AND status = 'pending'`;
 
     db.query(query, [email], (err, result) => {
         if (err) return res.status(500).json({ error: err.message });
         if (result.length === 0) return res.status(404).json({ error: "No pending interview found." });
 
         const interviewId = result[0].id;
+        const interviewerId = result[0].interviewer_id;
         const meetingId = `meeting-${interviewId}-${Date.now()}`; // Unique meeting ID
+        const meetingLink = `http://127.0.0.1:5000/room/${meetingId}`;
 
         // Step 2: Update interview with selected time & meeting ID
         const updateQuery = `UPDATE interviews SET selected_time = ?, meeting_id = ?, status = 'scheduled' WHERE id = ?`;
@@ -171,38 +173,131 @@ router.get('/select-slot', (req, res) => {
         db.query(updateQuery, [time, meetingId, interviewId], (err, updateResult) => {
             if (err) return res.status(500).json({ error: err.message });
 
-            // Step 3: Send Confirmation Email
-            const inviteLink = `https://yourdomain.com/meet/${meetingId}`;
-            const emailContent = `
-                <h1>Interview Confirmed</h1>
-                <p>Your interview for <strong>${new Date(time).toLocaleString()}</strong> has been confirmed.</p>
-                <p>Join the meeting here: <a href="${inviteLink}">${inviteLink}</a></p>
-                <p>Best regards,</p>
-                <p>Xynq</p>
-            `;
+            // Step 3: Store in calendar
+            const calendarInsert = `INSERT INTO calendar (interviewer_id, candidate_email, meeting_id, time, status) VALUES (?, ?, ?, ?, ?)`;
 
-            const mailOptions = {
-                from: process.env.EMAIL_USER,
-                to: email,
-                subject: "Your Interview is Confirmed",
-                html: emailContent
-            };
-
-            transporter.sendMail(mailOptions, (err, info) => {
+            db.query(calendarInsert, [interviewerId, email, meetingId, time, 'scheduled'], (err, calendarResult) => {
                 if (err) return res.status(500).json({ error: err.message });
 
-                return res.send(`
+                // Step 4: Send Confirmation Email
+                const emailContent = `
                     <h1>Interview Confirmed</h1>
-                    <p>Your interview has been scheduled for <strong>${new Date(time).toLocaleString()}</strong>.</p>
-                    <p><a href="${inviteLink}">Join the interview</a></p>
-                `);
+                    <p>Your interview for <strong>${new Date(time).toLocaleString()}</strong> has been confirmed.</p>
+                    <p>Join the meeting here: <a href="${meetingLink}">${meetingLink}</a></p>
+                    <p>Best regards,</p>
+                    <p>Xynq</p>
+                `;
+
+                const mailOptions = {
+                    from: process.env.EMAIL_USER,
+                    to: email,
+                    subject: "Your Interview is Confirmed",
+                    html: emailContent
+                };
+
+                transporter.sendMail(mailOptions, (err, info) => {
+                    if (err) return res.status(500).json({ error: err.message });
+
+                    return res.send(`
+                        <h1>Interview Confirmed</h1>
+                        <p>Your interview has been scheduled for <strong>${new Date(time).toLocaleString()}</strong>.</p>
+                        <p><a href="${meetingLink}">Join the interview</a></p>
+                    `);
+                });
             });
         });
     });
 });
 
-
-
-module.exports = router;        
-
+// Updated calendar route to support both JSON API and EJS rendering
+router.get('/calendar', (req, res) => {
+    const { interviewer_id } = req.query;  // Get the interviewer_id from query parameters
+    
+    if (!interviewer_id) {
+        // Check if this is an API request or a page request
+        const acceptHeader = req.headers.accept || '';
+        if (acceptHeader.includes('application/json')) {
+            return res.status(400).json({ error: "Interviewer ID is required." });
+        } else {
+            // Render the calendar page with an error
+            return res.render('calendar', { 
+                jwtToken: req.cookies.jwtToken,
+                error: "Interviewer ID is required."
+            });
+        }
+    }
+    
+    // Query to fetch all scheduled meetings for the interviewer
+    const query = `
+        SELECT candidate_email, meeting_id, time, status
+        FROM calendar
+        WHERE interviewer_id = ? AND status = 'scheduled'
+    `;
+    
+    db.query(query, [interviewer_id], (err, result) => {
+        if (err) {
+            // Check if this is an API request or a page request
+            const acceptHeader = req.headers.accept || '';
+            if (acceptHeader.includes('application/json')) {
+                return res.status(500).json({ error: err.message });
+            } else {
+                // Render the calendar page with an error
+                return res.render('calendar', { 
+                    jwtToken: req.cookies.jwtToken,
+                    error: err.message
+                });
+            }
+        }
         
+        // Check if this is an API request or a page request
+        const acceptHeader = req.headers.accept || '';
+        if (acceptHeader.includes('application/json')) {
+            // Return the scheduled meetings as a JSON response for API requests
+            return res.json({
+                message: result.length > 0 ? 
+                    "Scheduled meetings retrieved successfully." : 
+                    "No scheduled meetings found for this interviewer.",
+                meetings: result
+            });
+        } else {
+            // Render the calendar page with the meetings data
+            return res.render('calendar', { 
+                jwtToken: req.cookies.jwtToken,
+                meetings: result
+            });
+        }
+    });
+});
+
+// Add this route to your Express app to fetch interviewer ID by email
+router.get('/api/interviewer', (req, res) => {
+    const { email } = req.query;
+    
+    if (!email) {
+        return res.status(400).json({ error: "Email is required." });
+    }
+    
+    // Query to get interviewer ID from email
+    const query = `
+        SELECT id AS interviewer_id 
+        FROM interviewers 
+        WHERE email = ?
+    `;
+    
+    db.query(query, [email], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        if (result.length === 0) {
+            return res.status(404).json({ error: "No interviewer found with this email." });
+        }
+        
+        // Return the interviewer ID
+        return res.json({
+            interviewer_id: result[0].interviewer_id
+        });
+    });
+});
+
+module.exports = router;
