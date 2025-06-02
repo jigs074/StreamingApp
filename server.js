@@ -41,6 +41,7 @@ app.use(session({
 }));
 require('dotenv').config();
 require('dotenv').config({ path: './EmailCreds.env' });
+app.use(express.static(path.join(__dirname, 'client/dist')));
 
 const transporter = nodemailer.createTransport({
     service: 'gmail',
@@ -244,7 +245,7 @@ app.get('/verify-otp', (req, res) => {
 
 
 app.get('/login', (req, res) => {
-    res.render('login');
+     res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 
 
@@ -407,6 +408,7 @@ app.post('/login', async (req, res) => {
     if (!email || !password || !type) {
         return res.status(400).send({ error: 'Email, password, and user type are required.' });
     }
+
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
