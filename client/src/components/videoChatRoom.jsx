@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Peer from 'peerjs';
 import io from 'socket.io-client';
-import './VideoChatRoom.css';
+import './videoChatRoom.css';
 
 const ROOM_ID = window.ROOM_ID;
 const USER_ID = window.USER_ID;
