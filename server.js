@@ -253,7 +253,7 @@ app.get('/login', (req, res) => {
 
 
 app.get('/register', async (req, res) => {
-    res.render('register'); 
+    res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 
 function sendOtpEmail(otp, email, type, res, registerationData) {
@@ -531,6 +531,23 @@ app.get('/', (req, res) => {
 //     });
 // });
 
+// app.get('/room/:roomId', authenticateToken, (req, res) => {
+//     const roomId = req.params.roomId;
+
+//     if (!req.user || !req.user.email) {
+//         return res.status(401).send("Unauthorized: User data missing.");
+//     }
+
+//     const jwtToken = req.cookies.jwtToken; // Get token from cookies
+
+//     res.render('room', { 
+//         roomId, 
+//         email: req.user.email, 
+//         jwtToken // Pass jwtToken to EJS
+//     });
+// });
+
+
 app.get('/room/:roomId', authenticateToken, (req, res) => {
     const roomId = req.params.roomId;
 
@@ -538,14 +555,27 @@ app.get('/room/:roomId', authenticateToken, (req, res) => {
         return res.status(401).send("Unauthorized: User data missing.");
     }
 
-    const jwtToken = req.cookies.jwtToken; // Get token from cookies
+    const filePath = path.join(__dirname, 'client/dist/index.html');
 
-    res.render('room', { 
-        roomId, 
-        email: req.user.email, 
-        jwtToken // Pass jwtToken to EJS
+    fs.readFile(filePath, 'utf8', (err, htmlData) => {
+        if (err) {
+            console.error("Error reading index.html:", err);
+            return res.status(500).send("Server error");
+        }
+
+        // Inject ROOM_ID and USER_ID into HTML
+        const modifiedHtml = htmlData.replace(
+            '</head>',
+            `<script>
+                window.ROOM_ID = "${roomId}";
+                window.USER_ID = "${req.user.email}";
+            </script></head>`
+        );
+
+        res.send(modifiedHtml);
     });
 });
+
 
 
 

@@ -36,10 +36,28 @@
 
 
 import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import LoginPage from './components/LoginPage';
+import RegisterPage from './components/RegisterPage';
+import InterviewerDashboard from './components/InterviewerDashboard';
+import RequestInterview  from './components/RequestInterview';
+import VideoChatRoom  from './components/videoChatRoom';
+// Make sure this exists
 
 const App = () => {
-  return <LoginPage />;
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="/interviewerDashboard" element={<InterviewerDashboard />} />
+        <Route path = "/request-interview" element = {<RequestInterview />} />
+        <Route path="/room/:roomId" element={<VideoChatRoom />} />
+        {/* Add more routes here as needed */}
+      </Routes>
+    </Router>
+  );
 };
 
 export default App;
+

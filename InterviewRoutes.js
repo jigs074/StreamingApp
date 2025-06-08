@@ -1,10 +1,11 @@
 
 const express = require("express");
 const nodemailer = require("nodemailer");
+const path = require('path');
 const router = express.Router();
 const db = require("./db"); // Assuming you have a db module for MySQL queries
 const authenticateToken = require('./authenticateToken'); 
-
+router.use(express.static(path.join(__dirname, 'client/dist')));
 require("dotenv").config({ path: "./EmailCreds.env" });
 const transporter = nodemailer.createTransport({
     service: "gmail",
@@ -22,8 +23,8 @@ router.get('/request-interview', authenticateToken, (req, res) => {
     if (!token) {
         return res.redirect('/login');  // Redirect to login if no token exists
     }
+    res.sendFile(path.join(__dirname, 'client/dist/index.html'));
    
-    res.render('request-interview');
 
 }); 
 
@@ -49,7 +50,7 @@ router.get('/interviewerDashboard', authenticateToken, (req, res) => {
 
     const roomId = generateRoomId(); // Generate or fetch the room ID
 
-    res.render('interviewerDashboard', { jwtToken: token, roomId }); // Pass roomId to EJS
+     res.sendFile(path.join(__dirname, 'client/dist/index.html'));
 });
 
 // Function to generate a random room ID
