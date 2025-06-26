@@ -93,6 +93,7 @@ const InterviewerDashboard = () => {
       window.location.href = '/login';
     } else {
       window.location.href = '/request-interview';
+      
     }
   };
 
@@ -131,7 +132,7 @@ const InterviewerDashboard = () => {
 
       <nav className="nav">
         <div className="nav-container">
-          <a href="#" className="nav-item active">
+          <a href="/interviewerDashboard" className="nav-item active">
             <span className="nav-icon">📊</span>
             Dashboard
           </a>

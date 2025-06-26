@@ -54,7 +54,7 @@ const RequestInterview = () => {
       const result = await response.json();
       if (response.ok) {
         alert('Interview request sent successfully!');
-        window.location.href = '/dashboard';
+        window.location.href = '/interviewerDashboard';
       } else {
         alert(result.error || 'Something went wrong!');
       }

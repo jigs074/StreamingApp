@@ -210,7 +210,100 @@ router.get('/select-slot', (req, res) => {
     });
 });
 
-// Updated calendar route to support both JSON API and EJS rendering
+// // Updated calendar route to support both JSON API and EJS rendering
+// router.get('/calendar', (req, res) => {
+//     const { interviewer_id } = req.query;  // Get the interviewer_id from query parameters
+    
+//     if (!interviewer_id) {
+//         // Check if this is an API request or a page request
+//         const acceptHeader = req.headers.accept || '';
+//         if (acceptHeader.includes('application/json')) {
+//             return res.status(400).json({ error: "Interviewer ID is required." });
+//         } else {
+//             // Render the calendar page with an error
+//             return res.render('calendar', { 
+//                 jwtToken: req.cookies.jwtToken,
+//                 error: "Interviewer ID is required."
+//             });
+//         }
+//     }
+    
+//     // Query to fetch all scheduled meetings for the interviewer
+//     const query = `
+//         SELECT candidate_email, meeting_id, time, status
+//         FROM calendar
+//         WHERE interviewer_id = ? AND status = 'scheduled'
+//     `;
+    
+//     db.query(query, [interviewer_id], (err, result) => {
+//         if (err) {
+//             // Check if this is an API request or a page request
+//             const acceptHeader = req.headers.accept || '';
+//             if (acceptHeader.includes('application/json')) {
+//                 return res.status(500).json({ error: err.message });
+//             } else {
+//                 // Render the calendar page with an error
+//                 return res.render('calendar', { 
+//                     jwtToken: req.cookies.jwtToken,
+//                     error: err.message
+//                 });
+//             }
+//         }
+        
+//         // Check if this is an API request or a page request
+//         const acceptHeader = req.headers.accept || '';
+//         if (acceptHeader.includes('application/json')) {
+//             // Return the scheduled meetings as a JSON response for API requests
+//             return res.json({
+//                 message: result.length > 0 ? 
+//                     "Scheduled meetings retrieved successfully." : 
+//                     "No scheduled meetings found for this interviewer.",
+//                 meetings: result
+//             });
+//         } else {
+//             // Render the calendar page with the meetings data
+//             return res.render('calendar', { 
+//                 jwtToken: req.cookies.jwtToken,
+//                 meetings: result
+//             });
+//         }
+//     });
+// });
+
+// // Add this route to your Express app to fetch interviewer ID by email
+// router.get('/api/interviewer', (req, res) => {
+//     const { email } = req.query;
+    
+//     if (!email) {
+//         return res.status(400).json({ error: "Email is required." });
+//     }
+    
+//     // Query to get interviewer ID from email
+//     const query = `
+//         SELECT id AS interviewer_id 
+//         FROM interviewers 
+//         WHERE email = ?
+//     `;
+    
+//     db.query(query, [email], (err, result) => {
+//         if (err) {
+//             return res.status(500).json({ error: err.message });
+//         }
+        
+//         if (result.length === 0) {
+//             return res.status(404).json({ error: "No interviewer found with this email." });
+//         }
+        
+//         // Return the interviewer ID
+//         return res.json({
+//             interviewer_id: result[0].interviewer_id
+//         });
+//     });
+// });
+
+
+
+// Now automatically filters out past interviews
 router.get('/calendar', (req, res) => {
     const { interviewer_id } = req.query;  // Get the interviewer_id from query parameters
     
@@ -228,11 +321,14 @@ router.get('/calendar', (req, res) => {
         }
     }
     
-    // Query to fetch all scheduled meetings for the interviewer
+    // Query to fetch only future scheduled meetings for the interviewer
+    // This will automatically exclude interviews that are past their date/time
     const query = `
         SELECT candidate_email, meeting_id, time, status
         FROM calendar
-        WHERE interviewer_id = ? AND status = 'scheduled'
+        WHERE interviewer_id = ? 
+        AND status = 'scheduled'
+        AND time > NOW()
     `;
     
     db.query(query, [interviewer_id], (err, result) => {
@@ -270,6 +366,35 @@ router.get('/calendar', (req, res) => {
     });
 });
 
+// Optional: Add a cleanup route to permanently delete past interviews from the database
+// This can be called periodically or manually to clean up old records
+router.delete('/calendar/cleanup', (req, res) => {
+    const { interviewer_id } = req.query;
+    
+    if (!interviewer_id) {
+        return res.status(400).json({ error: "Interviewer ID is required." });
+    }
+    
+    // Delete past interviews from the database
+    const deleteQuery = `
+        DELETE FROM calendar
+        WHERE interviewer_id = ? 
+        AND status = 'scheduled'
+        AND time < NOW()
+    `;
+    
+    db.query(deleteQuery, [interviewer_id], (err, result) => {
+        if (err) {
+            return res.status(500).json({ error: err.message });
+        }
+        
+        return res.json({
+            message: `Successfully cleaned up ${result.affectedRows} past interviews.`,
+            deletedCount: result.affectedRows
+        });
+    });
+});
+
 // Add this route to your Express app to fetch interviewer ID by email
 router.get('/api/interviewer', (req, res) => {
     const { email } = req.query;
@@ -300,5 +425,7 @@ router.get('/api/interviewer', (req, res) => {
         });
     });
 });
+
+module.exports = router;
 
 module.exports = router;
