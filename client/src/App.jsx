@@ -42,6 +42,7 @@ import RegisterPage from './components/RegisterPage';
 import InterviewerDashboard from './components/InterviewerDashboard';
 import RequestInterview  from './components/RequestInterview';
 import VideoChatRoom  from './components/videoChatRoom';
+import Calendar from './components/Calendar';
 // Make sure this exists
 
 const App = () => {
@@ -53,6 +54,7 @@ const App = () => {
         <Route path="/interviewerDashboard" element={<InterviewerDashboard />} />
         <Route path = "/request-interview" element = {<RequestInterview />} />
         <Route path="/room/:roomId" element={<VideoChatRoom />} />
+        <Route path="/calendar" element={<Calendar />} />
         {/* Add more routes here as needed */}
       </Routes>
     </Router>
